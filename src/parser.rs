@@ -1,11 +1,11 @@
 use std::iter::Peekable;
 use std::str::Chars;
-use node::Node;
+use super::Node;
 
 pub type ParseResult = Result<Node, ParseError>;
 
 #[derive(Debug)]
-enum ParseError {
+pub enum ParseError {
     InvalidSyntax,
     UnmatchedParen
 }
@@ -55,12 +55,8 @@ fn parse_list(input: &mut Peekable<Chars>) -> ParseResult {
         _ => ()
     };
 
-    let k = try!(parse_list(input));
-
-    Ok(Node::Cell {
-        car: Box::new(v),
-        cdr: Box::new(k)
-    })
+    let cdr = try!(parse_list(input));
+    Ok(Node::Cell(Box::new(v), Box::new(cdr)))
 }
 
 fn number(n: u32, input: &mut Peekable<Chars>) -> Node {
@@ -70,9 +66,21 @@ fn number(n: u32, input: &mut Peekable<Chars>) -> Node {
             v = v * 10 + x.to_digit(10).unwrap();
         }
     }
-    Node::Int { v: v as i32 }
+    Node::Int(v as i32)
 }
 
 fn parse_digit(c: char, input: &mut Peekable<Chars>) ->  ParseResult {
     Ok(number(c.to_digit(10).unwrap(), input))
 }
+
+
+
+// #[cfg(test)]
+// mod test {
+//     use super::*;
+
+//     #[test]
+//     fn test_parsing() {
+//         assert_eq!(parse("(+ 2 3 4)"), Ok(Node::Int{ v: 9 }));
+//     }
+// }
