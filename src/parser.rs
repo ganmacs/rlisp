@@ -1,6 +1,6 @@
 use std::iter;
 use std::str;
-use super::Node;
+use node::Node;
 
 struct Lexer<'a> {
     input: iter::Peekable<str::Chars<'a>>,

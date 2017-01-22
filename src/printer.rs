@@ -1,4 +1,4 @@
-use super::Node;
+use node::Node;
 
 pub fn lprint(result: Node) {
     match result {

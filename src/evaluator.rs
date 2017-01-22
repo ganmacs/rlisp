@@ -1,4 +1,4 @@
-use super::Node;
+use node::Node;
 
 pub fn eval(ast: Node) -> Result<Node, &'static str> {    // specific type
     match ast {

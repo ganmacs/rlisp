@@ -1,7 +1,7 @@
 extern crate rlisp;
 
 use rlisp::parser::parse;
-use rlisp::Node;
+use rlisp::node::Node;
 
 #[test]
 fn test_read_nil() {

@@ -1,19 +1,13 @@
 pub mod parser;
 pub mod evaluator;
 pub mod printer;
-use evaluator::eval;
+pub mod node;
 
-#[derive(Debug, PartialEq)]
-pub enum Node {
-    Cell(Box<Node>, Box<Node>),
-    Int(i32),
-    Fn { name: &'static str },
-    Nil,
-}
+use node::Node;
 
 pub fn run(input: &'static str) ->  Result<Node, &'static str> {    // specific type
     match parser::parse(input) {
-        Ok(result) => eval(result),
+        Ok(result) => evaluator::eval(result),
         Err(v) => Err(v.to_str()),
     }
 }
