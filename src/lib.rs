@@ -1,16 +1,13 @@
-mod parser;
-mod evaluator;
+pub mod parser;
+pub mod evaluator;
 pub mod printer;
-
 use evaluator::eval;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Node {
     Cell(Box<Node>, Box<Node>),
     Int(i32),
     Fn { name: &'static str },
-    Dot,
-    RParen,
     Nil,
 }
 

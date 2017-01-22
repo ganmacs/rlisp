@@ -1,6 +1,41 @@
-use std::iter::Peekable;
-use std::str::Chars;
+use std::iter;
+use std::str;
 use super::Node;
+
+struct Lexer<'a> {
+    input: iter::Peekable<str::Chars<'a>>,
+}
+
+impl<'a> Lexer<'a> {
+    pub fn new(input: iter::Peekable<str::Chars<'a>>) -> Lexer<'a> {
+        Lexer { input: input }
+    }
+
+    pub fn next(&mut self) -> Option<char> {
+        self.input.next()
+    }
+
+    pub fn next_no_whitespace(&mut self) -> Option<char> {
+        self.comsume_whitespace();
+        self.input.next()
+    }
+
+    pub fn peek(&mut self) -> Option<char> {
+        self.input.peek().map( |c| c.to_owned() )
+    }
+
+    // Need to remove side-effect ?
+    pub fn peek_no_whitespace(&mut self) -> Option<char> {
+        self.comsume_whitespace();
+        self.input.peek().map( |c| c.to_owned() )
+    }
+
+    fn comsume_whitespace(&mut self) {
+        while self.peek().map( |c| c.is_whitespace() ).unwrap_or(false) {
+            self.input.next();
+        }
+    }
+}
 
 pub type ParseResult = Result<Node, ParseError>;
 
@@ -19,25 +54,18 @@ impl ParseError {
     }
 }
 
-pub fn parse(input: &'static str) -> ParseResult {
-    do_parse(&mut input.chars().peekable())
+pub fn parse(input: &str) -> ParseResult {
+    read(&mut Lexer::new(input.chars().peekable()))
 }
 
-fn do_parse(input: &mut Peekable<Chars>) ->  ParseResult {
-    match input.next() {
+fn read(input: &mut Lexer) ->  ParseResult {
+    match input.next_no_whitespace() {
         None => Ok(Node::Nil),
         Some(c) =>
             match c {
-                '(' => {
-                    if Some(&')') == input.peek() {
-                        return Ok(Node::Nil);
-                    }
-                    parse_list(input)
-                },
-                ' ' => do_parse(input),
-                ')' => Ok(Node::RParen),
+                '(' => read_list(input),
                 '+' => Ok(Node::Fn { name: "+" }),
-                x if x.is_digit(10) => parse_digit(x, input),
+                '0'...'9' => read_number(c, input),
                 _ => {
                     Err(ParseError::InvalidSyntax)
                 }
@@ -45,42 +73,35 @@ fn do_parse(input: &mut Peekable<Chars>) ->  ParseResult {
     }
 }
 
-fn parse_list(input: &mut Peekable<Chars>) -> ParseResult {
-    let v = try!(do_parse(input));
-
-    match v {
-        Node::Nil => return Err(ParseError::UnmatchedParen),
-        Node::Dot => return Err(ParseError::UnmatchedParen),
-        Node::RParen => return Ok(Node::Nil),
-        _ => ()
-    };
-
-    let cdr = try!(parse_list(input));
-    Ok(Node::Cell(Box::new(v), Box::new(cdr)))
+fn read_list(input: &mut Lexer) -> ParseResult {
+    match input.peek_no_whitespace() {
+        None => Err(ParseError::UnmatchedParen),
+        Some(')') => Ok(Node::Nil),
+        _ => {
+            let car = try!(read(input));
+            let cdr = try!(read(input));
+            Ok(Node::Cell(Box::new(car), Box::new(cdr)))
+        },
+    }
 }
 
-fn number(n: u32, input: &mut Peekable<Chars>) -> Node {
-    let mut v = n;
-    if let Some(x) = input.peek() {
-        if x.is_digit(10) {
-            v = v * 10 + x.to_digit(10).unwrap();
+fn read_int(c: char, input: &mut Lexer) -> ParseResult {
+    let mut v = String::new();
+    v.push(c);
+
+    while let Some(n) = input.peek() {
+        match n {
+            '0'...'9' => {
+                v.push(n);
+                input.next();
+            },
+            _ => return Err(ParseError::InvalidSyntax),
         }
     }
-    Node::Int(v as i32)
+
+    Ok(Node::Int(i32::from_str_radix(&v, 10).unwrap()))
 }
 
-fn parse_digit(c: char, input: &mut Peekable<Chars>) ->  ParseResult {
-    Ok(number(c.to_digit(10).unwrap(), input))
+fn read_number(c: char, input: &mut Lexer) ->  ParseResult {
+    read_int(c, input)
 }
-
-
-
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-
-//     #[test]
-//     fn test_parsing() {
-//         assert_eq!(parse("(+ 2 3 4)"), Ok(Node::Int{ v: 9 }));
-//     }
-// }
