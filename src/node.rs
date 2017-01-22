@@ -17,3 +17,7 @@ pub fn rnil() -> Node {
 pub fn rcell(car: Node, cdr:  Node) -> Node {
     Node::Cell(Box::new(car), Box::new(cdr))
 }
+
+pub fn quote(lst: Node) -> Node {
+    rcell(Node::Fn { name: "quote" }, lst)
+}

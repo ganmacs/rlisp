@@ -16,6 +16,11 @@ fn test_read_int() {
 }
 
 #[test]
+fn test_read_dot() {
+    assert_eq!(parse("'(1)").unwrap(), quote(rcell(rint(1), rnil())));
+}
+
+#[test]
 fn test_read_expr() {
     assert_eq!(parse("(+ 1 2)").unwrap(),
                rcell(Node::Fn { name: "+" }, rcell(rint(1), rcell(rint(2), rnil()))));

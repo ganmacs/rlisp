@@ -1,5 +1,6 @@
 use std::iter;
 use std::str;
+use node;
 use node::Node;
 
 struct Lexer<'a> {
@@ -64,6 +65,7 @@ fn read(input: &mut Lexer) ->  ParseResult {
         Some(c) =>
             match c {
                 '(' => read_list(input),
+                '\'' => read_quote(input),
                 '+' => Ok(Node::Fn { name: "+" }),
                 '0'...'9' => read_number(c, input),
                 _ => {
@@ -71,6 +73,11 @@ fn read(input: &mut Lexer) ->  ParseResult {
                 }
             }
     }
+}
+
+fn read_quote(input: &mut Lexer) -> ParseResult {
+    let v = try!(read(input));
+    Ok(node::rcell(Node::Fn { name: "quote" }, v))
 }
 
 fn read_list(input: &mut Lexer) -> ParseResult {
@@ -86,11 +93,12 @@ fn read_list(input: &mut Lexer) -> ParseResult {
 }
 
 fn read_int(c: char, input: &mut Lexer) -> ParseResult {
+    let radix = 10;
     let v = &mut String::new();
     v.push(c);
 
     while let Some(n) = input.peek() {
-        if n.is_digit(10) {
+        if n.is_digit(radix) {
             v.push(n);
             input.next();
         } else {
@@ -98,7 +106,7 @@ fn read_int(c: char, input: &mut Lexer) -> ParseResult {
         }
     }
 
-    Ok(Node::Int(i32::from_str_radix(&v, 10).unwrap()))
+    Ok(Node::Int(i32::from_str_radix(&v, radix).unwrap()))
 }
 
 fn read_number(c: char, input: &mut Lexer) ->  ParseResult {
