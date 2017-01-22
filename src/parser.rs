@@ -79,23 +79,22 @@ fn read_list(input: &mut Lexer) -> ParseResult {
         Some(')') => Ok(Node::Nil),
         _ => {
             let car = try!(read(input));
-            let cdr = try!(read(input));
+            let cdr = try!(read_list(input));
             Ok(Node::Cell(Box::new(car), Box::new(cdr)))
         },
     }
 }
 
 fn read_int(c: char, input: &mut Lexer) -> ParseResult {
-    let mut v = String::new();
+    let v = &mut String::new();
     v.push(c);
 
     while let Some(n) = input.peek() {
-        match n {
-            '0'...'9' => {
-                v.push(n);
-                input.next();
-            },
-            _ => return Err(ParseError::InvalidSyntax),
+        if n.is_digit(10) {
+            v.push(n);
+            input.next();
+        } else {
+            break;
         }
     }
 
