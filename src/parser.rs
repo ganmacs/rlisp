@@ -57,7 +57,7 @@ impl ParseError {
 
 fn read_quote(input: &mut Lexer) -> ParseResult {
     let v = try!(read(input));
-    Ok(node::rcell(Node::Fn { name: "quote" }, v))
+    Ok(node::rcell(Node::Sym("quote".to_string()), v))
 }
 
 fn read_list(input: &mut Lexer) -> ParseResult {

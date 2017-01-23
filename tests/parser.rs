@@ -17,7 +17,7 @@ fn test_read_int() {
 
 #[test]
 fn test_read_dot() {
-    assert_eq!(parse("'(1)").unwrap(), quote(rcell(rint(1), rnil())));
+    assert_eq!(parse("'(1)").unwrap(), rquote(rcell(rint(1), rnil())));
 }
 
 #[test]
