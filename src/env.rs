@@ -1,6 +1,6 @@
 use std::collections::{HashMap, LinkedList};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Env<T> {
     global: HashMap<String, T>,
     local: LinkedList<HashMap<String, T>>

@@ -1,32 +1,41 @@
-use node::Node;
+use std::result;
+use node::{Node, rcell, rnil};
+use env::Env;
 
-pub fn eval(ast: Node) -> Result<Node, &'static str> {    // specific type
-    match ast {
-        Node::Cell(car, cdr) => {
-            let fun = eval(*car);
-            match try!(fun) {
-                Node::Fn { name: n } => {
-                    match n {
-                        "+" => Ok(Node::Int(prim_add(*cdr))),
-                        _ => Err("Unknow function")
-                    }
-                },
-                _ => Err("others")
-            }
-        },
-        x => Ok(x)
+pub type Result<T> = result::Result<T, RError>;
+
+#[derive(Debug, Clone)]
+pub enum RError {
+    E,                     // must be fix
+    UnknowSymbol
+}
+
+fn apply(renv: &mut Env<Node>, fun: &Node, args: &Node) -> Result<Node> {
+    match *fun {
+        Node::Prim(ref prim) => prim(renv, args),
+        _ => Err(RError::UnknowSymbol)
     }
 }
 
-fn prim_add(ast: Node) -> i32 {
-    match ast {
-        Node::Cell(car, cdr) => {
-            if let Node::Int(k) = *car {
-                k + prim_add(*cdr)
-            } else {
-                0
-            }
+pub fn eval_list(renv: &mut Env<Node>, ast: &Node) -> Result<Node> {
+    match *ast {
+        Node::Cell(ref car, ref cdr) => Ok(rcell(try!(eval(renv, car)), try!(eval_list(renv, cdr)))),
+        Node::Nil => Ok(rnil()),
+        _ => Err(RError::E),
+    }
+}
+
+pub fn eval(renv: &mut Env<Node>, ast: &Node) -> Result<Node> {    // specific type
+    match *ast {
+        Node::Int(_) => Ok(ast.clone()),
+        Node::Cell(ref car, ref cdr) => {
+            let f = try!(eval(renv, car));
+            apply(renv, &f, cdr)
+        }
+        Node::Sym(ref v) => match renv.find(v) {
+            Some(k) => Ok(k.clone()),
+            None => Err(RError::UnknowSymbol)
         },
-        _ => 0
+        _ => Err(RError::E)
     }
 }

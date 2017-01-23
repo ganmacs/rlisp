@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::iter;
 use std::str;
 use node;
@@ -67,7 +68,7 @@ fn read_list(input: &mut Lexer) -> ParseResult {
         _ => {
             let car = try!(read(input));
             let cdr = try!(read_list(input));
-            Ok(Node::Cell(Box::new(car), Box::new(cdr)))
+            Ok(Node::Cell(Rc::new(car), Rc::new(cdr)))
         },
     }
 }
@@ -122,7 +123,6 @@ fn read(input: &mut Lexer) ->  ParseResult {
             match c {
                 '(' => read_list(input),
                 '\'' => read_quote(input),
-                // '+' => Ok(Node::Fn { name: "+" }),
                 '0'...'9' => read_number(input, c),
                 _ => read_symbol(input, c)
             }
