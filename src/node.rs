@@ -2,6 +2,7 @@
 pub enum Node {
     Cell(Box<Node>, Box<Node>),
     Int(i32),
+    Sym(String),
     Fn { name: &'static str },
     Nil,
 }
@@ -20,4 +21,7 @@ pub fn rcell(car: Node, cdr:  Node) -> Node {
 
 pub fn quote(lst: Node) -> Node {
     rcell(Node::Fn { name: "quote" }, lst)
+
+pub fn rsym<T: Into<String>>(s: T) -> Node {
+    Node::Sym(s.into())
 }

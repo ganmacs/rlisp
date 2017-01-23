@@ -55,26 +55,6 @@ impl ParseError {
     }
 }
 
-pub fn parse(input: &str) -> ParseResult {
-    read(&mut Lexer::new(input.chars().peekable()))
-}
-
-fn read(input: &mut Lexer) ->  ParseResult {
-    match input.next_no_whitespace() {
-        None => Ok(Node::Nil),
-        Some(c) =>
-            match c {
-                '(' => read_list(input),
-                '\'' => read_quote(input),
-                '+' => Ok(Node::Fn { name: "+" }),
-                '0'...'9' => read_number(c, input),
-                _ => {
-                    Err(ParseError::InvalidSyntax)
-                }
-            }
-    }
-}
-
 fn read_quote(input: &mut Lexer) -> ParseResult {
     let v = try!(read(input));
     Ok(node::rcell(Node::Fn { name: "quote" }, v))
@@ -111,4 +91,45 @@ fn read_int(c: char, input: &mut Lexer) -> ParseResult {
 
 fn read_number(c: char, input: &mut Lexer) ->  ParseResult {
     read_int(c, input)
+}
+
+fn read_symbol(input: &mut Lexer, c: char) ->  ParseResult {
+    let v = &mut String::new();
+    v.push(c);
+
+    while let Some(c) = input.peek() {
+        if !is_ident(c) {
+            break;
+        }
+        v.push(c);
+        input.next();
+    }
+
+    Ok(Node::Sym(v.to_owned()))
+}
+
+fn read(input: &mut Lexer) ->  ParseResult {
+    match input.next_no_whitespace() {
+        None => Ok(Node::Nil),
+        Some(c) =>
+            match c {
+                '(' => read_list(input),
+                '\'' => read_quote(input),
+                // '+' => Ok(Node::Fn { name: "+" }),
+                '0'...'9' => read_number(input, c),
+                _ => read_symbol(input, c)
+            }
+    }
+}
+
+fn is_ident(c: char) -> bool {
+    match c {
+        'a'...'z' | 'A'...'Z' | '0'...'9' | '=' | '<' | '>' |
+        '+' | '-' | '/' | '%' => true,
+        _ => false
+    }
+}
+
+pub fn parse<T: Into<String>>(input: T) -> ParseResult {
+    read(&mut Lexer::new(input.into().chars().peekable()))
 }

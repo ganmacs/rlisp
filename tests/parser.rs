@@ -23,11 +23,16 @@ fn test_read_dot() {
 #[test]
 fn test_read_expr() {
     assert_eq!(parse("(+ 1 2)").unwrap(),
-               rcell(Node::Fn { name: "+" }, rcell(rint(1), rcell(rint(2), rnil()))));
+               rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))));
     assert_eq!(parse("(+ 1 2 3)").unwrap(),
-               rcell(Node::Fn { name: "+" }, rcell(rint(1), rcell(rint(2), rcell(rint(3), rnil())))));
+               rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rcell(rint(3), rnil())))));
     assert_eq!(parse("(+ 1 (+ 2 3))").unwrap(),
-               rcell(Node::Fn { name: "+" },
+               rcell(rsym("+"),
                      rcell(rint(1),
-                           rcell(rcell(Node::Fn { name: "+" }, rcell(rint(2), rcell(rint(3), rnil()))), rnil()))));
+                           rcell(rcell(rsym("+"), rcell(rint(2), rcell(rint(3), rnil()))), rnil()))));
+}
+
+#[test]
+fn test_read_symbol() {
+    assert_eq!(parse("(inc 1)").unwrap(), rcell(rsym("inc"), rcell(rint(1), rnil())));
 }
