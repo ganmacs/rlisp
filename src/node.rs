@@ -1,9 +1,9 @@
 #[derive(Debug, PartialEq)]
 pub enum Node {
-    Cell(Box<Node>, Box<Node>),
     Int(i32),
     Sym(String),
     Fn { name: &'static str },
+    Cell(Box<Node>, Box<Node>),
     Nil,
 }
 

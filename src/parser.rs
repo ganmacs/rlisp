@@ -47,8 +47,8 @@ pub enum ParseError {
 }
 
 impl ParseError {
-    pub fn to_str(self) ->  &'static str {
-        match self {
+    pub fn to_str(&self) ->  &'static str {
+        match *self {
             ParseError::InvalidSyntax => "Invalid Syntax",
             ParseError::UnmatchedParen => "Unmatched Paren"
         }
@@ -78,18 +78,17 @@ fn read_int(c: char, input: &mut Lexer) -> ParseResult {
     v.push(c);
 
     while let Some(n) = input.peek() {
-        if n.is_digit(radix) {
-            v.push(n);
-            input.next();
-        } else {
+        if !n.is_digit(radix) {
             break;
         }
+        v.push(n);
+        input.next();
     }
 
     Ok(Node::Int(i32::from_str_radix(&v, radix).unwrap()))
 }
 
-fn read_number(c: char, input: &mut Lexer) ->  ParseResult {
+fn read_number(input: &mut Lexer, c: char) ->  ParseResult {
     read_int(c, input)
 }
 
@@ -108,6 +107,14 @@ fn read_symbol(input: &mut Lexer, c: char) ->  ParseResult {
     Ok(Node::Sym(v.to_owned()))
 }
 
+fn is_ident(c: char) -> bool {
+    match c {
+        'a'...'z' | 'A'...'Z' | '0'...'9' | '=' | '<' | '>' |
+        '+' | '-' | '/' | '%' => true,
+        _ => false
+    }
+}
+
 fn read(input: &mut Lexer) ->  ParseResult {
     match input.next_no_whitespace() {
         None => Ok(Node::Nil),
@@ -119,14 +126,6 @@ fn read(input: &mut Lexer) ->  ParseResult {
                 '0'...'9' => read_number(input, c),
                 _ => read_symbol(input, c)
             }
-    }
-}
-
-fn is_ident(c: char) -> bool {
-    match c {
-        'a'...'z' | 'A'...'Z' | '0'...'9' | '=' | '<' | '>' |
-        '+' | '-' | '/' | '%' => true,
-        _ => false
     }
 }
 
