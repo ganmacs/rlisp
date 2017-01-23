@@ -2,6 +2,7 @@ pub mod parser;
 pub mod evaluator;
 pub mod printer;
 pub mod node;
+pub mod env;
 
 use node::Node;
 
