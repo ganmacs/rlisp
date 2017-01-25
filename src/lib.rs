@@ -6,11 +6,12 @@ pub mod env;
 pub mod primitives;
 
 use std::rc::Rc;
-use node::{Node, Prim};
+use node::{Node, Prim, prim};
 use env::Env;
 
 fn register_symbols(env: &mut Env<Node>) {
-    env.register("+", Node::Prim(Prim(Rc::new(primitives::prim_add))))
+    env.register("+", prim(Prim(Rc::new(primitives::prim_add))));
+    env.register("-", prim(Prim(Rc::new(primitives::prim_sub))));
 }
 
 fn init(env: &mut Env<Node>) {

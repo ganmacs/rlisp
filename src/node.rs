@@ -37,6 +37,10 @@ pub fn rsym<T: Into<String>>(s: T) -> Node {
     Node::Sym(s.into())
 }
 
+pub fn prim(v: Prim) -> Node {
+    Node::Prim(v)
+}
+
 impl PartialEq for Prim {
     fn eq(&self, other: &Self) -> bool {
         false                   // TODO: fix

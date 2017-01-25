@@ -22,6 +22,7 @@ fn test_read_dot() {
 
 #[test]
 fn test_read_expr() {
+    // add
     assert_eq!(parse("(+ 1 2)").unwrap(),
                rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))));
     assert_eq!(parse("(+ 1 2 3)").unwrap(),
@@ -30,6 +31,10 @@ fn test_read_expr() {
                rcell(rsym("+"),
                      rcell(rint(1),
                            rcell(rcell(rsym("+"), rcell(rint(2), rcell(rint(3), rnil()))), rnil()))));
+
+    // sub
+    assert_eq!(parse("(- 2 1)").unwrap(),
+               rcell(rsym("-"), rcell(rint(2), rcell(rint(1), rnil()))));
 }
 
 #[test]

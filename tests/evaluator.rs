@@ -18,12 +18,29 @@ fn test_eval_add_prim() {
     let env = &mut Env::new();
     env.register("+", Node::Prim(Prim(Rc::new(prim_add))));
     // (+ 1 2)
-    assert_eq!(eval(env, &rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil())))).unwrap(), rint(3));
+    let t1 = rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil())));
     // (+ 1 2 3)
-    assert_eq!(eval(env, &rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rcell(rint(3), rnil()))))).unwrap(), rint(6));
+    let t2 = rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rcell(rint(3), rnil()))));
     // (+ 1 (+ 2 3))
-    assert_eq!(eval(env, &rcell(rsym("+"),
-                                rcell(rint(1),
-                                      rcell(rcell(rsym("+"), rcell(rint(2), rcell(rint(3), rnil()))), rnil())))).unwrap(),
-               rint(6));
+    let t3 = rcell(rsym("+"), rcell(rint(1), rcell(rcell(rsym("+"), rcell(rint(2), rcell(rint(3), rnil()))), rnil())));
+
+    assert_eq!(eval(env, &t1).unwrap(), rint(3));
+    assert_eq!(eval(env, &t2).unwrap(), rint(6));
+    assert_eq!(eval(env, &t3).unwrap(), rint(6));
+}
+
+#[test]
+fn test_eval_sub_prim() {
+    let env = &mut Env::new();
+    env.register("-", Node::Prim(Prim(Rc::new(prim_sub))));
+    // (- 2 3)
+    let t1 = rcell(rsym("-"), rcell(rint(2), rcell(rint(1), rnil())));
+    // (- 3 2 1)
+    let t2 = rcell(rsym("-"), rcell(rint(3), rcell(rint(2), rcell(rint(1), rnil()))));
+    // (- 3 (- 2 1))
+    let t3 = rcell(rsym("-"), rcell(rint(3), rcell(rcell(rsym("-"), rcell(rint(2), rcell(rint(1), rnil()))), rnil())));
+
+    assert_eq!(eval(env, &t1).unwrap(), rint(1));
+    assert_eq!(eval(env, &t2).unwrap(), rint(0));
+    assert_eq!(eval(env, &t3).unwrap(), rint(2));
 }
