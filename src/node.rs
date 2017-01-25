@@ -3,7 +3,7 @@ use std::ops::Deref;
 use env::Env;
 use std::fmt;
 
-use evaluator::{Result as EResult};
+use evaluator::{Result as EResult, RError};
 
 #[derive(Clone)]
 pub struct Prim(pub Rc<Fn(&mut Env<Node>, &Node) -> EResult<Node>>);
@@ -15,6 +15,13 @@ pub enum Node {
     Prim(Prim),
     Cell(Rc<Node>, Rc<Node>),
     Nil,
+}
+
+pub fn car(cell: &Node) -> EResult<Node> {
+    match cell {
+        &Node::Cell(ref car, _) => Ok((**car).clone()),
+        _ => Err(RError::WrongTypeArg)
+    }
 }
 
 pub fn rint(n: i32) -> Node {

@@ -1,6 +1,21 @@
-use node::{Node, rint};
+use node::{Node, rint, car as cc};
 use env::Env;
 use evaluator::*;
+
+pub fn prim_define(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
+    match *args {
+        Node::Cell(ref car, ref cdr) => {
+            if let Node::Sym(ref s) = **car {
+                let ccdr = try!(cc(cdr));
+                let ret = try!(eval(renv, &ccdr));
+                renv.register(s.to_string(), ret.clone());
+                return Ok(ret);
+            }
+        },
+        _ => ()
+    }
+    Err(RError::E)
+}
 
 pub fn prim_sub(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
     let lst = try!(eval_list(renv, args));

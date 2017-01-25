@@ -44,3 +44,20 @@ fn test_eval_sub_prim() {
     assert_eq!(eval(env, &t2).unwrap(), rint(0));
     assert_eq!(eval(env, &t3).unwrap(), rint(2));
 }
+
+#[test]
+fn test_eval_define_prim() {
+    let env = &mut Env::new();
+    env.register("define", Node::Prim(Prim(Rc::new(prim_define))));
+    env.register("+", Node::Prim(Prim(Rc::new(prim_add))));
+    // (define x 1)
+    let t1 = rcell(rsym("define"), rcell(rsym("x"), rcell(rint(1), rnil())));
+    // (define y (+ 1 2))
+    let t2 = rcell(rsym("define"), rcell(rsym("y"), rcell(rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))), rnil())));
+
+    assert_eq!(eval(env, &t1).unwrap(), rint(1));
+    assert_eq!(eval(env, &t2).unwrap(), rint(3));
+
+    assert_eq!(*(env.find("x").unwrap()), rint(1));
+    assert_eq!(*(env.find("y").unwrap()), rint(3));
+}

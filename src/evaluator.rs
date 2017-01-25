@@ -7,7 +7,8 @@ pub type Result<T> = result::Result<T, RError>;
 #[derive(Debug, Clone)]
 pub enum RError {
     E,                     // must be fix
-    UnknowSymbol
+    UnknowSymbol,
+    WrongTypeArg
 }
 
 fn apply(renv: &mut Env<Node>, fun: &Node, args: &Node) -> Result<Node> {

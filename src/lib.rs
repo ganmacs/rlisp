@@ -12,6 +12,7 @@ use env::Env;
 fn register_symbols(env: &mut Env<Node>) {
     env.register("+", prim(Prim(Rc::new(primitives::prim_add))));
     env.register("-", prim(Prim(Rc::new(primitives::prim_sub))));
+    env.register("define", prim(Prim(Rc::new(primitives::prim_define))));
 }
 
 fn init(env: &mut Env<Node>) {

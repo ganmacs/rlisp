@@ -41,3 +41,11 @@ fn test_read_expr() {
 fn test_read_symbol() {
     assert_eq!(parse("(inc 1)").unwrap(), rcell(rsym("inc"), rcell(rint(1), rnil())));
 }
+
+#[test]
+fn test_define() {
+    assert_eq!(parse("(define x 1)").unwrap(),
+               rcell(rsym("define"), rcell(rsym("x"), rcell(rint(1), rnil()))));
+    assert_eq!(parse("(define x (+ 1 2))").unwrap(),
+               rcell(rsym("define"), rcell(rsym("x"), rcell(rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))), rnil()))));
+}
