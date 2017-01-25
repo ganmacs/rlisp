@@ -19,4 +19,11 @@ fn test_eval_add_prim() {
     env.register("+", Node::Prim(Prim(Rc::new(prim_add))));
     // (+ 1 2)
     assert_eq!(eval(env, &rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil())))).unwrap(), rint(3));
+    // (+ 1 2 3)
+    assert_eq!(eval(env, &rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rcell(rint(3), rnil()))))).unwrap(), rint(6));
+    // (+ 1 (+ 2 3))
+    assert_eq!(eval(env, &rcell(rsym("+"),
+                                rcell(rint(1),
+                                      rcell(rcell(rsym("+"), rcell(rint(2), rcell(rint(3), rnil()))), rnil())))).unwrap(),
+               rint(6));
 }
