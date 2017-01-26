@@ -2,6 +2,17 @@ use node::{Node, rint, car as cc};
 use env::Env;
 use evaluator::*;
 
+pub fn prim_progn(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
+    match *args {
+        Node::Cell(ref car, ref cdr) => {
+            let ret = try!(eval(renv, car));
+            let rest = try!(prim_progn(renv, cdr));
+            Ok(if rest == Node::Nil { ret } else  { rest })
+        }
+        ref x => Ok(x.clone())
+    }
+}
+
 pub fn prim_define(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
     match *args {
         Node::Cell(ref car, ref cdr) => {

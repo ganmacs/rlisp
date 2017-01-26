@@ -54,3 +54,11 @@ fn test_read_define() {
     assert_eq!(parse("(define x (+ 1 2))").unwrap(),
                rcell(rsym("define"), rcell(rsym("x"), rcell(rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))), rnil()))));
 }
+
+#[test]
+fn test_read_progn() {
+    assert_eq!(parse("(progn (+ 1 2) (+ 1 2))").unwrap(),
+               rcell(rsym("progn"),
+                     rcell(rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))),
+                           rcell(rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))), rnil()))))
+}

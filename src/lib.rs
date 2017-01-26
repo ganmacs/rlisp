@@ -13,6 +13,7 @@ fn register_symbols(env: &mut Env<Node>) {
     env.register("+", prim(Prim(Rc::new(primitives::prim_add))));
     env.register("-", prim(Prim(Rc::new(primitives::prim_sub))));
     env.register("define", prim(Prim(Rc::new(primitives::prim_define))));
+    env.register("progn", prim(Prim(Rc::new(primitives::prim_progn))));
 }
 
 fn init(env: &mut Env<Node>) {
