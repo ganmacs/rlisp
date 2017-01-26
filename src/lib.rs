@@ -27,6 +27,6 @@ pub fn run(input: &str) ->  Result<Node, String> {    // specific type
     init(renv);
     match parser::parse(input) {
         Ok(result) => evaluator::eval(renv, &result).map_err( |_| "Evaluate Error".into()),
-        Err(v) => Err(v.to_str().into()),
+        Err(v) => Err(v.to_str()),
     }
 }

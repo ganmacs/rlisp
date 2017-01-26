@@ -6,19 +6,25 @@ use node::Node;
 
 struct Lexer<'a> {
     input: iter::Peekable<str::Chars<'a>>,
+    pub pos: Pos,
 }
+
+#[derive(Debug, Clone)]
+pub struct Pos(u32);
 
 impl<'a> Lexer<'a> {
     pub fn new(input: iter::Peekable<str::Chars<'a>>) -> Lexer<'a> {
-        Lexer { input: input }
+        Lexer { input: input, pos: Pos(0) }
     }
 
     pub fn next(&mut self) -> Option<char> {
+        self.pos.0 += 1;
         self.input.next()
     }
 
     pub fn next_no_whitespace(&mut self) -> Option<char> {
         self.comsume_whitespace();
+        self.pos.0 += 1;
         self.input.next()
     }
 
@@ -34,6 +40,7 @@ impl<'a> Lexer<'a> {
 
     fn comsume_whitespace(&mut self) {
         while self.peek().map( |c| c.is_whitespace() ).unwrap_or(false) {
+            self.pos.0 += 1;
             self.input.next();
         }
     }
@@ -43,15 +50,15 @@ pub type ParseResult = Result<Node, ParseError>;
 
 #[derive(Debug)]
 pub enum ParseError {
-    InvalidSyntax,
-    UnmatchedParen
+    InvalidSyntax(Pos),
+    UnmatchedParen(Pos)
 }
 
 impl ParseError {
-    pub fn to_str(&self) ->  &'static str {
+    pub fn to_str(&self) -> String {
         match *self {
-            ParseError::InvalidSyntax => "Invalid Syntax",
-            ParseError::UnmatchedParen => "Unmatched Paren"
+            ParseError::InvalidSyntax(ref p) => format!("Invalid Syntax at {}", p.0),
+            ParseError::UnmatchedParen(ref p) => format!("Unmatched Paren as {}", p.0),
         }
     }
 }
@@ -63,8 +70,11 @@ fn read_quote(lexer: &mut Lexer) -> ParseResult {
 
 fn read_list(lexer: &mut Lexer) -> ParseResult {
     match lexer.peek_no_whitespace() {
-        None => Err(ParseError::UnmatchedParen),
-        Some(')') => Ok(Node::Nil),
+        None => Err(ParseError::UnmatchedParen(lexer.pos.clone())),
+        Some(')') => {
+            lexer.next();
+            Ok(Node::Nil)
+        },
         _ => {
             let car = try!(read(lexer));
             let cdr = try!(read_list(lexer));

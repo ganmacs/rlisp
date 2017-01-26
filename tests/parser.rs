@@ -35,6 +35,11 @@ fn test_read_expr() {
     // sub
     assert_eq!(parse("(- 2 1)").unwrap(),
                rcell(rsym("-"), rcell(rint(2), rcell(rint(1), rnil()))));
+
+    assert_eq!(parse("(- (- 10 5) (- 10 5))").unwrap(),
+               rcell(rsym("-"),
+                     rcell(rcell(rsym("-"), rcell(rint(10), rcell(rint(5), rnil()))),
+                           rcell(rcell(rsym("-"), rcell(rint(10), rcell(rint(5), rnil()))), rnil()))));
 }
 
 #[test]
