@@ -2,7 +2,7 @@ use std::rc::Rc;
 use std::iter;
 use std::str;
 use node;
-use node::Node;
+use node::{Node, Bool};
 
 struct Lexer<'a> {
     input: iter::Peekable<str::Chars<'a>>,
@@ -51,14 +51,16 @@ pub type ParseResult = Result<Node, ParseError>;
 #[derive(Debug)]
 pub enum ParseError {
     InvalidSyntax(Pos),
-    UnmatchedParen(Pos)
+    UnmatchedParen(Pos),
+    RequireString(Pos)
 }
 
 impl ParseError {
     pub fn to_str(&self) -> String {
         match *self {
             ParseError::InvalidSyntax(ref p) => format!("Invalid Syntax at {}", p.0),
-            ParseError::UnmatchedParen(ref p) => format!("Unmatched Paren as {}", p.0),
+            ParseError::UnmatchedParen(ref p) => format!("Unmatched Paren at {}", p.0),
+            ParseError::RequireString(ref p) => format!("Requred Charater at {}", p.0),
         }
     }
 }
@@ -126,6 +128,14 @@ fn is_ident(c: char) -> bool {
     }
 }
 
+fn read_hash_symbol(lexer: &mut Lexer) -> ParseResult {
+    match lexer.next() {
+        Some('t') => Ok(Node::Bool(Bool::True)),
+        Some('f') => Ok(Node::Bool(Bool::False)),
+        _ => Err(ParseError::RequireString(lexer.pos.clone())),
+    }
+}
+
 fn read(lexer: &mut Lexer) ->  ParseResult {
     match lexer.next_no_whitespace() {
         None => Ok(Node::Nil),
@@ -133,6 +143,7 @@ fn read(lexer: &mut Lexer) ->  ParseResult {
             match c {
                 '(' => read_list(lexer),
                 '\'' => read_quote(lexer),
+                '#' => read_hash_symbol(lexer),
                 '0'...'9' => read_number(lexer, c),
                 _ => read_symbol(lexer, c)
             }

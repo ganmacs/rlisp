@@ -19,6 +19,15 @@ fn test_eval_int() {
 }
 
 #[test]
+fn test_eval_bool() {
+    let env = &mut Env::new();
+    test_init(env);
+    // #t
+    assert_eq!(eval(env, &rtrue()).unwrap(), rtrue());
+    // #f
+    assert_eq!(eval(env, &rfalse()).unwrap(), rfalse());
+}
+
 fn test_eval_add_prim() {
     let env = &mut Env::new();
     test_init(env);

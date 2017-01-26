@@ -7,14 +7,14 @@ pub type Result<T> = result::Result<T, RError>;
 #[derive(Debug, Clone)]
 pub enum RError {
     E,                     // must be fix
-    UnknowSymbol,
+    UnknowSymbol(String),
     WrongTypeArg
 }
 
 fn apply(renv: &mut Env<Node>, fun: &Node, args: &Node) -> Result<Node> {
     match *fun {
         Node::Prim(ref prim) => prim(renv, args),
-        _ => Err(RError::UnknowSymbol)
+        _ => Err(RError::UnknowSymbol("apply".to_string()))
     }
 }
 
@@ -28,14 +28,14 @@ pub fn eval_list(renv: &mut Env<Node>, ast: &Node) -> Result<Node> {
 
 pub fn eval(renv: &mut Env<Node>, ast: &Node) -> Result<Node> {    // specific type
     match *ast {
-        Node::Int(_) => Ok(ast.clone()),
+        Node::Int(_) | Node::Bool(_) => Ok(ast.clone()),
         Node::Cell(ref car, ref cdr) => {
             let f = try!(eval(renv, car));
             apply(renv, &f, cdr)
         }
         Node::Sym(ref v) => match renv.find(v) {
             Some(k) => Ok(k.clone()),
-            None => Err(RError::UnknowSymbol)
+            None => Err(RError::UnknowSymbol(v.to_owned()))
         },
         _ => Err(RError::E)
     }

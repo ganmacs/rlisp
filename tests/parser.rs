@@ -16,7 +16,14 @@ fn test_read_int() {
 }
 
 #[test]
-fn test_read_dot() {
+fn test_read_bool() {
+    assert_eq!(parse("#t").unwrap(), rtrue());
+    assert_eq!(parse("#f").unwrap(), rfalse());
+}
+
+#[test]
+fn test_read_quote() {
+    assert_eq!(parse("'()").unwrap(), rquote(rnil()));
     assert_eq!(parse("'(1)").unwrap(), rquote(rcell(rint(1), rnil())));
 }
 

@@ -13,8 +13,15 @@ pub enum Node {
     Int(i32),
     Sym(String),
     Prim(Prim),
+    Bool(Bool),
     Cell(Rc<Node>, Rc<Node>),
     Nil,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Bool {
+    True,
+    False
 }
 
 pub fn car(cell: &Node) -> EResult<Node> {
@@ -30,6 +37,14 @@ pub fn rint(n: i32) -> Node {
 
 pub fn rnil() -> Node {
     Node::Nil
+}
+
+pub fn rtrue() -> Node {
+    Node::Bool(Bool::True)
+}
+
+pub fn rfalse() -> Node {
+    Node::Bool(Bool::False)
 }
 
 pub fn rcell(car: Node, cdr:  Node) -> Node {
