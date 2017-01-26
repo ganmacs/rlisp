@@ -6,7 +6,10 @@ use std::fmt;
 use evaluator::{Result as EResult, RError};
 
 #[derive(Clone)]
-pub struct Prim(pub Rc<Fn(&mut Env<Node>, &Node) -> EResult<Node>>);
+pub enum Prim {
+    Proc(Rc<Fn(&mut Env<Node>, &Node) -> EResult<Node>>),
+    Lambda { env: Env<Node>, args: Rc<Node>, body: Rc<Node> }
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Node {
@@ -96,5 +99,10 @@ impl fmt::Debug for Prim {
 
 impl Deref for Prim {
     type Target = Rc<Fn(&mut Env<Node>, &Node) -> EResult<Node>>;
-    fn deref(&self) -> &Self::Target { &self.0 }
+    fn deref(&self) -> &Self::Target {
+        match *self {
+            Prim::Proc(ref x) => x,
+            Prim::Lambda(ref x) => x
+        }
+    }
 }

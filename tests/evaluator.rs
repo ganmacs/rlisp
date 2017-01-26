@@ -7,10 +7,11 @@ use rlisp::env::Env;
 use rlisp::node::*;
 
 fn test_init(env: &mut Env<Node>) {
-    env.register("+", Node::Prim(Prim(Rc::new(prim_add))));
-    env.register("-", Node::Prim(Prim(Rc::new(prim_sub))));
-    env.register("if", Node::Prim(Prim(Rc::new(prim_if))));
-    env.register("quote", Node::Prim(Prim(Rc::new(prim_quote))));
+    env.register("+", Node::Prim(Prim::Proc(Rc::new(prim_add))));
+    env.register("-", Node::Prim(Prim::Proc(Rc::new(prim_sub))));
+    env.register("if", Node::Prim(Prim::Proc(Rc::new(prim_if))));
+    env.register("quote", Node::Prim(Prim::Proc(Rc::new(prim_quote))));
+    env.register("lambda", Node::Prim(Prim::Proc(Rc::new(prim_lambda))));
 }
 
 #[test]
@@ -82,7 +83,7 @@ fn test_eval_sub_prim() {
 fn test_eval_define_prim() {
     let env = &mut Env::new();
     test_init(env);
-    env.register("define", Node::Prim(Prim(Rc::new(prim_define))));
+    env.register("define", Node::Prim(Prim::Proc(Rc::new(prim_define))));
     // (define x 1)
     let t1 = rcell(rsym("define"), rcell(rsym("x"), rcell(rint(1), rnil())));
     // (define y (+ 1 2))
@@ -100,8 +101,8 @@ fn test_eval_define_prim() {
 fn test_eval_progn_prim() {
     let env = &mut Env::new();
     test_init(env);
-    env.register("progn", Node::Prim(Prim(Rc::new(prim_progn))));
-    env.register("define", Node::Prim(Prim(Rc::new(prim_define))));
+    env.register("progn", Node::Prim(Prim::Proc(Rc::new(prim_progn))));
+    env.register("define", Node::Prim(Prim::Proc(Rc::new(prim_define))));
 
     // (progn 1 2)
     let t1 = rcell(rsym("progn"), rcell(rint(1), rcell(rint(2), rnil())));
