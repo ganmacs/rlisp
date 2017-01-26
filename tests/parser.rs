@@ -43,7 +43,7 @@ fn test_read_symbol() {
 }
 
 #[test]
-fn test_define() {
+fn test_read_define() {
     assert_eq!(parse("(define x 1)").unwrap(),
                rcell(rsym("define"), rcell(rsym("x"), rcell(rint(1), rnil()))));
     assert_eq!(parse("(define x (+ 1 2))").unwrap(),
