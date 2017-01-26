@@ -80,3 +80,12 @@ fn test_read_if() {
     assert_eq!(parse("(if #t (+ 1 2) 2)").unwrap(),
                rcell(rsym("if"), rcell(rtrue(), rcell(rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))), rcell(rint(2), rnil())))));
 }
+
+#[test]
+fn test_read_lambda() {
+    assert_eq!(parse("(lambda () 1)").unwrap(), rcell(rsym("lambda"), rcell(rnil(), rcell(rint(1), rnil()))));
+    assert_eq!(parse("(lambda () 1 2)").unwrap(), rcell(rsym("lambda"), rcell(rnil(), rcell(rint(1), rcell(rint(2), rnil())))));
+    assert_eq!(parse("(lambda (a b) (+ a b))").unwrap(),
+               rcell(rsym("lambda"), rcell(rcell(rsym("a"), rcell(rsym("b"), rnil())),
+                                           rcell(rcell(rsym("+"), rcell(rsym("a"), rcell(rsym("b"), rnil()))), rnil()))));
+}

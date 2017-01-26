@@ -1,6 +1,14 @@
-use node::{Node, Bool, rint, rcar, rcdar, rcddar};
+use std::rc::Rc;
+use node::{Prim, Node, Bool, rint, rcar, rcdar, rcddar, rcdr, rsym, rcell};
 use env::Env;
 use evaluator::*;
+
+pub fn prim_lambda(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
+    let lambda_args = try!(rcar(args));
+    let body = rcell(rsym("progn"), try!(rcdr(args)));
+
+    Ok(Node::Prim(Prim::Lambda(renv.clone(), Rc::new(lambda_args), Rc::new(body))))
+}
 
 pub fn prim_if(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
     let cond = try!(rcar(args).and_then( |ref v| eval(renv, v) ));

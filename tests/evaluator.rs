@@ -12,6 +12,8 @@ fn test_init(env: &mut Env<Node>) {
     env.register("if", Node::Prim(Prim::Proc(Rc::new(prim_if))));
     env.register("quote", Node::Prim(Prim::Proc(Rc::new(prim_quote))));
     env.register("lambda", Node::Prim(Prim::Proc(Rc::new(prim_lambda))));
+    env.register("progn", Node::Prim(Prim::Proc(Rc::new(prim_progn))));
+    env.register("define", Node::Prim(Prim::Proc(Rc::new(prim_define))));
 }
 
 #[test]
@@ -83,7 +85,6 @@ fn test_eval_sub_prim() {
 fn test_eval_define_prim() {
     let env = &mut Env::new();
     test_init(env);
-    env.register("define", Node::Prim(Prim::Proc(Rc::new(prim_define))));
     // (define x 1)
     let t1 = rcell(rsym("define"), rcell(rsym("x"), rcell(rint(1), rnil())));
     // (define y (+ 1 2))
@@ -101,9 +102,6 @@ fn test_eval_define_prim() {
 fn test_eval_progn_prim() {
     let env = &mut Env::new();
     test_init(env);
-    env.register("progn", Node::Prim(Prim::Proc(Rc::new(prim_progn))));
-    env.register("define", Node::Prim(Prim::Proc(Rc::new(prim_define))));
-
     // (progn 1 2)
     let t1 = rcell(rsym("progn"), rcell(rint(1), rcell(rint(2), rnil())));
     // (progn (+ 1 2) (+ 3 2))
@@ -138,4 +136,29 @@ fn test_eval_if_prim() {
     assert_eq!(eval(env, &t2).unwrap(), rint(3));
     assert_eq!(eval(env, &t3).unwrap(), rint(2));
     assert_eq!(eval(env, &t4).unwrap(), rint(2)); // nil is #t
+}
+
+
+#[test]
+fn test_eval_lambda_prim() {
+    let env = &mut Env::new();
+    test_init(env);
+    // (lambda () 1)
+    let t1 = rcell(rcell(rsym("lambda"), rcell(rnil(), rcell(rint(1), rnil()))), rnil());
+    // (lambda () 1 2)
+    let t2 = rcell(rcell(rsym("lambda"), rcell(rnil(), rcell(rint(1), rcell(rint(2), rnil())))), rnil());
+    // ((lambda (x) (+ x 1)) 10)
+    let t3 = rcell(
+        rcell(rsym("lambda"), rcell(rcell(rsym("x"), rnil()), rcell(rcell(rsym("+"), rcell(rsym("x"), rcell(rint(1), rnil()))), rnil()))),
+        rcell(rint(10), rnil()));
+
+    // ((lambda (a b) (- a b)) 10 5)
+    let t4 = rcell(
+        rcell(rsym("lambda"), rcell(rcell(rsym("a"), rcell(rsym("b"), rnil())), rcell(rcell(rsym("-"), rcell(rsym("a"), rcell(rsym("b"), rnil()))), rnil()))),
+        rcell(rint(10), rcell(rint(5), rnil())));
+
+    assert_eq!(eval(env, &t1).unwrap(), rint(1));
+    assert_eq!(eval(env, &t2).unwrap(), rint(2));
+    assert_eq!(eval(env, &t3).unwrap(), rint(11));
+    assert_eq!(eval(env, &t4).unwrap(), rint(5));
 }
