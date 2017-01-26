@@ -51,8 +51,8 @@ pub fn rcell(car: Node, cdr:  Node) -> Node {
     Node::Cell(Rc::new(car), Rc::new(cdr))
 }
 
-pub fn rquote(lst: Node) -> Node {
-    rcell(Node::Sym("quote".to_string()), lst)
+pub fn rquote(v: Node) -> Node {
+    rcell(Node::Sym("quote".to_string()), rcell(v, Node::Nil))
 }
 
 pub fn rsym<T: Into<String>>(s: T) -> Node {

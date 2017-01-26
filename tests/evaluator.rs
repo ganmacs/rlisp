@@ -9,6 +9,7 @@ use rlisp::node::*;
 fn test_init(env: &mut Env<Node>) {
     env.register("+", Node::Prim(Prim(Rc::new(prim_add))));
     env.register("-", Node::Prim(Prim(Rc::new(prim_sub))));
+    env.register("quote", Node::Prim(Prim(Rc::new(prim_quote))));
 }
 
 #[test]
@@ -28,6 +29,23 @@ fn test_eval_bool() {
     assert_eq!(eval(env, &rfalse()).unwrap(), rfalse());
 }
 
+#[test]
+fn test_eval_quote() {
+    let env = &mut Env::new();
+    test_init(env);
+    // '()
+    assert_eq!(eval(env, &rquote(rnil())).unwrap(), rnil());
+    // '1
+    assert_eq!(eval(env, &rquote(rint(1))).unwrap(), rint(1));
+    // '#t
+    assert_eq!(eval(env, &rquote(rtrue())).unwrap(), rtrue());
+    // '(1)
+    assert_eq!(eval(env, &rquote(rcell(rint(1), rnil()))).unwrap(), rcell(rint(1), rnil()));
+    // '(a b c)
+    assert_eq!(eval(env, &rquote(rcell(rint(1), rnil()))).unwrap(), rcell(rint(1), rnil()));
+}
+
+#[test]
 fn test_eval_add_prim() {
     let env = &mut Env::new();
     test_init(env);

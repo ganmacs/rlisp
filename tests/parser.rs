@@ -24,7 +24,9 @@ fn test_read_bool() {
 #[test]
 fn test_read_quote() {
     assert_eq!(parse("'()").unwrap(), rquote(rnil()));
+    assert_eq!(parse("'1").unwrap(), rquote(rint(1)));
     assert_eq!(parse("'(1)").unwrap(), rquote(rcell(rint(1), rnil())));
+    assert_eq!(parse("'(a b c)").unwrap(), rquote(rcell(rsym("a"), rcell(rsym("b"), rcell(rsym("c"), rnil())))));
 }
 
 #[test]

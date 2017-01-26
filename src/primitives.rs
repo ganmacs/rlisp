@@ -13,6 +13,10 @@ pub fn prim_progn(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
     }
 }
 
+pub fn prim_quote(_: &mut Env<Node>, args: &Node) -> Result<Node> {
+    cc(args)
+}
+
 pub fn prim_define(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
     match *args {
         Node::Cell(ref car, ref cdr) => {

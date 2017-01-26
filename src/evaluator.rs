@@ -14,7 +14,7 @@ pub enum RError {
 fn apply(renv: &mut Env<Node>, fun: &Node, args: &Node) -> Result<Node> {
     match *fun {
         Node::Prim(ref prim) => prim(renv, args),
-        _ => Err(RError::UnknowSymbol("apply".to_string()))
+        _ => Err(RError::UnknowSymbol(format!("{:?}", fun)))
     }
 }
 
@@ -28,7 +28,7 @@ pub fn eval_list(renv: &mut Env<Node>, ast: &Node) -> Result<Node> {
 
 pub fn eval(renv: &mut Env<Node>, ast: &Node) -> Result<Node> {    // specific type
     match *ast {
-        Node::Int(_) | Node::Bool(_) => Ok(ast.clone()),
+        Node::Int(_) | Node::Bool(_) | Node::Nil => Ok(ast.clone()),
         Node::Cell(ref car, ref cdr) => {
             let f = try!(eval(renv, car));
             apply(renv, &f, cdr)
