@@ -9,6 +9,7 @@ use rlisp::node::*;
 fn test_init(env: &mut Env<Node>) {
     env.register("+", Node::Prim(Prim(Rc::new(prim_add))));
     env.register("-", Node::Prim(Prim(Rc::new(prim_sub))));
+    env.register("if", Node::Prim(Prim(Rc::new(prim_if))));
     env.register("quote", Node::Prim(Prim(Rc::new(prim_quote))));
 }
 
@@ -117,4 +118,23 @@ fn test_eval_progn_prim() {
     assert_eq!(eval(env, &t1).unwrap(), rint(2));
     assert_eq!(eval(env, &t2).unwrap(), rint(5));
     assert_eq!(eval(env, &t3).unwrap(), rint(20));
+}
+
+#[test]
+fn test_eval_if_prim() {
+    let env = &mut Env::new();
+    test_init(env);
+    // (if #t (+ 1 2) 2)
+    let t1 = rcell(rsym("if"), rcell(rtrue(), rcell(rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))), rcell(rint(2), rnil()))));
+    // (if #f 2 (+ 1 2))
+    let t2 = rcell(rsym("if"), rcell(rfalse(), rlist(rint(2), rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))))));
+    // (if 1 2 (+ 1 2))
+    let t3 = rcell(rsym("if"), rcell(rint(1), rlist(rint(2), rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))))));
+    // (if () 2 (+ 1 2))
+    let t4 = rcell(rsym("if"), rcell(rnil(), rlist(rint(2), rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))))));
+
+    assert_eq!(eval(env, &t1).unwrap(), rint(3));
+    assert_eq!(eval(env, &t2).unwrap(), rint(3));
+    assert_eq!(eval(env, &t3).unwrap(), rint(2));
+    assert_eq!(eval(env, &t4).unwrap(), rint(2)); // nil is #t
 }

@@ -1,6 +1,16 @@
-use node::{Node, rint, car as cc};
+use node::{Node, Bool, rint, rcar, rcdar, rcddar};
 use env::Env;
 use evaluator::*;
+
+pub fn prim_if(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
+    let cond = try!(rcar(args).and_then( |ref v| eval(renv, v) ));
+    let clause = if cond == Node::Bool(Bool::False) {
+        rcddar(args)
+    } else {
+        rcdar(args)
+    };
+    clause.and_then( |ref v| eval(renv, v))
+}
 
 pub fn prim_progn(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
     match *args {
@@ -14,14 +24,14 @@ pub fn prim_progn(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
 }
 
 pub fn prim_quote(_: &mut Env<Node>, args: &Node) -> Result<Node> {
-    cc(args)
+    rcar(args)
 }
 
 pub fn prim_define(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
     match *args {
         Node::Cell(ref car, ref cdr) => {
             if let Node::Sym(ref s) = **car {
-                let ccdr = try!(cc(cdr));
+                let ccdr = try!(rcar(cdr));
                 let ret = try!(eval(renv, &ccdr));
                 renv.register(s.to_string(), ret.clone());
                 return Ok(ret);

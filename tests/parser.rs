@@ -69,5 +69,14 @@ fn test_read_progn() {
     assert_eq!(parse("(progn (+ 1 2) (+ 1 2))").unwrap(),
                rcell(rsym("progn"),
                      rcell(rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))),
-                           rcell(rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))), rnil()))))
+                           rcell(rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))), rnil()))));
+}
+
+#[test]
+fn test_read_if() {
+    assert_eq!(parse("(if #t 1 2)").unwrap(),
+               rcell(rsym("if"), rcell(rtrue(), rcell(rint(1), rcell(rint(2), rnil())))));
+
+    assert_eq!(parse("(if #t (+ 1 2) 2)").unwrap(),
+               rcell(rsym("if"), rcell(rtrue(), rcell(rcell(rsym("+"), rcell(rint(1), rcell(rint(2), rnil()))), rcell(rint(2), rnil())))));
 }

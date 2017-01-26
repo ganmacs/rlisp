@@ -24,9 +24,24 @@ pub enum Bool {
     False
 }
 
-pub fn car(cell: &Node) -> EResult<Node> {
+pub fn rcdar(cell: &Node) -> EResult<Node> {
+    rcdr(cell).and_then( |ref v| rcar(v) )
+}
+
+pub fn rcddar(cell: &Node) -> EResult<Node> {
+    rcdr(cell).and_then( |ref v| rcdr(v) ).and_then( |ref v| rcar(v) )
+}
+
+pub fn rcar(cell: &Node) -> EResult<Node> {
     match cell {
         &Node::Cell(ref car, _) => Ok((**car).clone()),
+        _ => Err(RError::WrongTypeArg)
+    }
+}
+
+pub fn rcdr(cell: &Node) -> EResult<Node> {
+    match cell {
+        &Node::Cell(_, ref cdr) => Ok((**cdr).clone()),
         _ => Err(RError::WrongTypeArg)
     }
 }
@@ -49,6 +64,10 @@ pub fn rfalse() -> Node {
 
 pub fn rcell(car: Node, cdr:  Node) -> Node {
     Node::Cell(Rc::new(car), Rc::new(cdr))
+}
+
+pub fn rlist(car: Node, cdr: Node) -> Node {
+    rcell(car, rcell(cdr, Node::Nil))
 }
 
 pub fn rquote(v: Node) -> Node {
