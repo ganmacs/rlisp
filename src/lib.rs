@@ -17,6 +17,7 @@ fn register_symbols(env: &mut Env<Node>) {
     env.register("quote", prim(Prim::Proc(Rc::new(primitives::prim_quote))));
     env.register("if", prim(Prim::Proc(Rc::new(primitives::prim_if))));
     env.register("lambda", prim(Prim::Proc(Rc::new(primitives::prim_lambda))));
+    env.register("let", prim(Prim::Proc(Rc::new(primitives::prim_let))));
 }
 
 fn init(env: &mut Env<Node>) {

@@ -89,3 +89,15 @@ fn test_read_lambda() {
                rcell(rsym("lambda"), rcell(rcell(rsym("a"), rcell(rsym("b"), rnil())),
                                            rcell(rcell(rsym("+"), rcell(rsym("a"), rcell(rsym("b"), rnil()))), rnil()))));
 }
+
+#[test]
+fn test_read_let() {
+    assert_eq!(parse("(let ((a 10)) a)").unwrap(),
+               rcell(rsym("let"),
+                     rlist(rcell(rlist(rsym("a"), rint(10)), rnil()), rsym("a"))));
+
+    assert_eq!(parse("(let ((a 10) (b 11)) (- a b))").unwrap(),
+               rcell(rsym("let"),
+                     rlist(rlist(rlist(rsym("a"), rint(10)), rlist(rsym("b"), rint(11))),
+                           rcell(rsym("-"), rlist(rsym("a"), rsym("b"))))));
+}

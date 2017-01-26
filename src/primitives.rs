@@ -1,7 +1,27 @@
 use std::rc::Rc;
-use node::{Prim, Node, Bool, rint, rcar, rcdar, rcddar, rcdr, rsym, rcell};
+use node::{Prim, Node, Bool, rint, rcar, rcdar, rcddar, rcdr, rsym, rcell, rquote};
 use env::Env;
 use evaluator::*;
+
+pub fn prim_let(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
+    let let_args = try!(rcar(args));
+    let body = try!(rcdar(args));
+    let (aargs, vargs) = transform(&let_args);
+    let lambda = Node::Prim(Prim::Lambda(renv.clone(), Rc::new(vargs), Rc::new(body)));
+    eval(renv, &rcell(rquote(lambda), aargs))
+}
+
+fn transform(node: &Node) -> (Node, Node) {
+    match node {
+        &Node::Cell(ref v, ref r) => {
+            let nv = rcar(v).unwrap();
+            let nr = rcdar(v).unwrap();
+            let (ar, vr) = transform(r);
+            (rcell(nr, ar), rcell(nv, vr))
+        }
+        _ => (Node::Nil, Node::Nil)
+    }
+}
 
 pub fn prim_lambda(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
     let lambda_args = try!(rcar(args));

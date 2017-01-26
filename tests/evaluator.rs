@@ -14,6 +14,7 @@ fn test_init(env: &mut Env<Node>) {
     env.register("lambda", Node::Prim(Prim::Proc(Rc::new(prim_lambda))));
     env.register("progn", Node::Prim(Prim::Proc(Rc::new(prim_progn))));
     env.register("define", Node::Prim(Prim::Proc(Rc::new(prim_define))));
+    env.register("let", Node::Prim(Prim::Proc(Rc::new(prim_let))));
 }
 
 #[test]
@@ -138,7 +139,6 @@ fn test_eval_if_prim() {
     assert_eq!(eval(env, &t4).unwrap(), rint(2)); // nil is #t
 }
 
-
 #[test]
 fn test_eval_lambda_prim() {
     let env = &mut Env::new();
@@ -161,4 +161,20 @@ fn test_eval_lambda_prim() {
     assert_eq!(eval(env, &t2).unwrap(), rint(2));
     assert_eq!(eval(env, &t3).unwrap(), rint(11));
     assert_eq!(eval(env, &t4).unwrap(), rint(5));
+}
+
+#[test]
+fn test_eval_let_prim() {
+    let env = &mut Env::new();
+    test_init(env);
+    // (let ((a 10)) a)
+    let t1 = rcell(rsym("let"), rlist(rcell(rlist(rsym("a"), rint(10)), rnil()), rsym("a")));
+    // (let ((a 10) (b 11)) (- a b))
+    let t2 = rcell(rsym("let"),
+                     rlist(rlist(rlist(rsym("a"), rint(10)), rlist(rsym("b"), rint(11))),
+                           rcell(rsym("-"), rlist(rsym("a"), rsym("b")))));
+
+    assert_eq!(eval(env, &t1).unwrap(), rint(10));
+    assert_eq!(eval(env, &t2).unwrap(), rint(-1));
+
 }
