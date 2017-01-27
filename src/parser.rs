@@ -3,7 +3,7 @@ use std::iter;
 use std::str;
 use node;
 use node::{Node, Bool};
-use error::{RResult as Result, ParseError};
+use error::{RResult, ParseError};
 
 struct Lexer<'a> {
     input: iter::Peekable<str::Chars<'a>>,
@@ -44,7 +44,7 @@ impl<'a> Lexer<'a> {
     }
 }
 
-pub type ParseResult = Result<Node, ParseError>;
+pub type ParseResult = RResult<Node, ParseError>;
 
 fn read_quote(lexer: &mut Lexer) -> ParseResult {
     let v = try!(read(lexer));
