@@ -27,9 +27,9 @@ fn register_all(renv: &mut Env<Node>, keys: &Node, values: &Node) -> EvalResult 
 
 fn apply(renv: &mut Env<Node>, fun: &Node, args: &Node) -> EvalResult {
     match *fun {
-        Node::Prim(ref prim) => match prim {
-            &Prim::Proc(ref f) => f(renv, args),
-            &Prim::Lambda(ref v, ref a, ref body)  => {
+        Node::Prim(ref prim) => match *prim {
+            Prim::Proc(ref f) => f(renv, args),
+            Prim::Lambda(ref v, ref a, ref body)  => {
                 let new_env = &mut v.clone();
                 new_env.push_local_scope();
                 let ret = apply_function(new_env, (a, &try!(eval_list(renv, args))), body);

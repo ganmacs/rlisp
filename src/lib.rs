@@ -24,16 +24,12 @@ fn register_symbols(env: &mut Env<Node>) {
 
 fn init(env: &mut Env<Node>) {
     register_symbols(env);
-
-    // this method should be call at the last of initilization.
-    env.push_local_scope();
 }
 
 pub fn run<T: Into<String>>(input: T) -> RResult<Node, RLispError> {
     let renv = &mut env::Env::new();
     init(renv);
-    match parser::parse(input) {
-        Ok(result) => evaluator::eval(renv, &result).map_err( |v| RLispError::EvalError(v) ),
-        Err(v) => Err(RLispError::ParseError(v)),
-    }
+
+    let ast = try!(parser::parse(input).map_err( |v| RLispError::ParseError(v)));
+    evaluator::eval(renv, &ast).map_err( |v| RLispError::EvalError(v) )
 }

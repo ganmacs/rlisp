@@ -1,6 +1,6 @@
+use std::fmt;
 use std::rc::Rc;
 use env::Env;
-use std::fmt;
 use error::EvalError;
 use evaluator::EvalResult;
 
@@ -35,16 +35,18 @@ pub fn rcddar(cell: &Node) -> EvalResult {
 }
 
 pub fn rcar(cell: &Node) -> EvalResult {
-    match cell {
-        &Node::Cell(ref car, _) => Ok((**car).clone()),
-        _ => Err(EvalError::WrongTypeArg)
+    if let Node::Cell(ref car, _) = *cell {
+        Ok((**car).clone())
+    } else {
+        Err(EvalError::WrongTypeArg)
     }
 }
 
 pub fn rcdr(cell: &Node) -> EvalResult {
-    match cell {
-        &Node::Cell(_, ref cdr) => Ok((**cdr).clone()),
-        _ => Err(EvalError::WrongTypeArg)
+    if let Node::Cell(_, ref cdr) = *cell {
+        Ok((**cdr).clone())
+    } else {
+        Err(EvalError::WrongTypeArg)
     }
 }
 
