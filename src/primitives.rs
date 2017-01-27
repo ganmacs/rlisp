@@ -2,8 +2,9 @@ use std::rc::Rc;
 use node::{Prim, Node, Bool, rint, rcar, rcdar, rcddar, rcdr, rsym, rcell, rquote};
 use env::Env;
 use evaluator::*;
+use error::EvalError;
 
-pub fn prim_let(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
+pub fn prim_let(renv: &mut Env<Node>, args: &Node) -> EvalResult {
     let let_args = try!(rcar(args));
     let body = try!(rcdar(args));
     let (aargs, vargs) = transform(&let_args);
@@ -23,14 +24,14 @@ fn transform(node: &Node) -> (Node, Node) {
     }
 }
 
-pub fn prim_lambda(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
+pub fn prim_lambda(renv: &mut Env<Node>, args: &Node) -> EvalResult {
     let lambda_args = try!(rcar(args));
     let body = rcell(rsym("progn"), try!(rcdr(args)));
 
     Ok(Node::Prim(Prim::Lambda(renv.clone(), Rc::new(lambda_args), Rc::new(body))))
 }
 
-pub fn prim_if(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
+pub fn prim_if(renv: &mut Env<Node>, args: &Node) -> EvalResult {
     let cond = try!(rcar(args).and_then( |ref v| eval(renv, v) ));
     let clause = if cond == Node::Bool(Bool::False) {
         rcddar(args)
@@ -40,7 +41,7 @@ pub fn prim_if(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
     clause.and_then( |ref v| eval(renv, v))
 }
 
-pub fn prim_progn(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
+pub fn prim_progn(renv: &mut Env<Node>, args: &Node) -> EvalResult {
     match *args {
         Node::Cell(ref car, ref cdr) => {
             let ret = try!(eval(renv, car));
@@ -51,11 +52,11 @@ pub fn prim_progn(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
     }
 }
 
-pub fn prim_quote(_: &mut Env<Node>, args: &Node) -> Result<Node> {
+pub fn prim_quote(_: &mut Env<Node>, args: &Node) -> EvalResult {
     rcar(args)
 }
 
-pub fn prim_define(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
+pub fn prim_define(renv: &mut Env<Node>, args: &Node) -> EvalResult {
     match *args {
         Node::Cell(ref car, ref cdr) => {
             if let Node::Sym(ref s) = **car {
@@ -67,10 +68,10 @@ pub fn prim_define(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
         },
         _ => ()
     }
-    Err(RError::E)
+    Err(EvalError::E)
 }
 
-pub fn prim_sub(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
+pub fn prim_sub(renv: &mut Env<Node>, args: &Node) -> EvalResult {
     let lst = try!(eval_list(renv, args));
     match lst {
         Node::Cell(ref car, ref cdr) => {
@@ -81,10 +82,10 @@ pub fn prim_sub(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
         _ => ()
     }
 
-    Err(RError::E)
+    Err(EvalError::E)
 }
 
-pub fn prim_add(renv: &mut Env<Node>, args: &Node) -> Result<Node> {
+pub fn prim_add(renv: &mut Env<Node>, args: &Node) -> EvalResult {
     Ok(rint(do_add(&try!(eval_list(renv, args)))))
 }
 

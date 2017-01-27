@@ -4,10 +4,12 @@ pub mod printer;
 pub mod node;
 pub mod env;
 pub mod primitives;
+pub mod error;
 
 use std::rc::Rc;
 use node::{Node, Prim, prim};
 use env::Env;
+use error::{RResult, RLispError};
 
 fn register_symbols(env: &mut Env<Node>) {
     env.register("+", prim(Prim::Proc(Rc::new(primitives::prim_add))));
@@ -27,11 +29,11 @@ fn init(env: &mut Env<Node>) {
     env.push_local_scope();
 }
 
-pub fn run(input: &str) ->  Result<Node, String> {    // specific type
+pub fn run<T: Into<String>>(input: T) -> RResult<Node, RLispError> {
     let renv = &mut env::Env::new();
     init(renv);
     match parser::parse(input) {
-        Ok(result) => evaluator::eval(renv, &result).map_err( |_| "Evaluate Error".into()),
-        Err(v) => Err(v.to_str()),
+        Ok(result) => evaluator::eval(renv, &result).map_err( |v| RLispError::EvalError(v) ),
+        Err(v) => Err(RLispError::ParseError(v)),
     }
 }

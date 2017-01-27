@@ -3,67 +3,48 @@ use std::iter;
 use std::str;
 use node;
 use node::{Node, Bool};
+use error::{RResult as Result, ParseError};
 
 struct Lexer<'a> {
     input: iter::Peekable<str::Chars<'a>>,
-    pub pos: Pos,
+    pub pos: u32,
 }
 
-#[derive(Debug, Clone)]
-pub struct Pos(u32);
-
 impl<'a> Lexer<'a> {
-    pub fn new(input: iter::Peekable<str::Chars<'a>>) -> Lexer<'a> {
-        Lexer { input: input, pos: Pos(0) }
+    pub fn new(input: &'a str) -> Lexer<'a> {
+        let k = input.chars().peekable();
+        Lexer { input: k, pos: 0 }
     }
 
     pub fn next(&mut self) -> Option<char> {
-        self.pos.0 += 1;
+        self.pos += 1;
         self.input.next()
     }
 
     pub fn next_no_whitespace(&mut self) -> Option<char> {
         self.comsume_whitespace();
-        self.pos.0 += 1;
+        self.pos += 1;
         self.input.next()
     }
 
     pub fn peek(&mut self) -> Option<char> {
-        self.input.peek().map( |c| c.to_owned() )
+        self.input.peek().map(|c| *c)
     }
 
-    // Need to remove side-effect ?
     pub fn peek_no_whitespace(&mut self) -> Option<char> {
         self.comsume_whitespace();
-        self.input.peek().map( |c| c.to_owned() )
+        self.input.peek().map(|c| *c)
     }
 
     fn comsume_whitespace(&mut self) {
-        while self.peek().map( |c| c.is_whitespace() ).unwrap_or(false) {
-            self.pos.0 += 1;
+        while self.peek().map(|c| c.is_whitespace()).unwrap_or(false) {
+            self.pos += 1;
             self.input.next();
         }
     }
 }
 
 pub type ParseResult = Result<Node, ParseError>;
-
-#[derive(Debug)]
-pub enum ParseError {
-    InvalidSyntax(Pos),
-    UnmatchedParen(Pos),
-    RequireString(Pos)
-}
-
-impl ParseError {
-    pub fn to_str(&self) -> String {
-        match *self {
-            ParseError::InvalidSyntax(ref p) => format!("Invalid Syntax at {}", p.0),
-            ParseError::UnmatchedParen(ref p) => format!("Unmatched Paren at {}", p.0),
-            ParseError::RequireString(ref p) => format!("Requred Charater at {}", p.0),
-        }
-    }
-}
 
 fn read_quote(lexer: &mut Lexer) -> ParseResult {
     let v = try!(read(lexer));
@@ -151,5 +132,5 @@ fn read(lexer: &mut Lexer) ->  ParseResult {
 }
 
 pub fn parse<T: Into<String>>(input: T) -> ParseResult {
-    read(&mut Lexer::new(input.into().chars().peekable()))
+    read(&mut Lexer::new(&input.into()))
 }

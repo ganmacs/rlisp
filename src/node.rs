@@ -1,14 +1,8 @@
 use std::rc::Rc;
 use env::Env;
 use std::fmt;
-
-use evaluator::{Result as EResult, RError};
-
-#[derive(Clone)]
-pub enum Prim {
-    Proc(Rc<Fn(&mut Env<Node>, &Node) -> EResult<Node>>),
-    Lambda (Env<Node>, Rc<Node>, Rc<Node>)
-}
+use error::EvalError;
+use evaluator::EvalResult;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Node {
@@ -20,31 +14,37 @@ pub enum Node {
     Nil,
 }
 
+#[derive(Clone)]
+pub enum Prim {
+    Proc(Rc<Fn(&mut Env<Node>, &Node) -> EvalResult>),
+    Lambda (Env<Node>, Rc<Node>, Rc<Node>)
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Bool {
     True,
     False
 }
 
-pub fn rcdar(cell: &Node) -> EResult<Node> {
+pub fn rcdar(cell: &Node) -> EvalResult {
     rcdr(cell).and_then( |ref v| rcar(v) )
 }
 
-pub fn rcddar(cell: &Node) -> EResult<Node> {
+pub fn rcddar(cell: &Node) -> EvalResult {
     rcdr(cell).and_then( |ref v| rcdr(v) ).and_then( |ref v| rcar(v) )
 }
 
-pub fn rcar(cell: &Node) -> EResult<Node> {
+pub fn rcar(cell: &Node) -> EvalResult {
     match cell {
         &Node::Cell(ref car, _) => Ok((**car).clone()),
-        _ => Err(RError::WrongTypeArg)
+        _ => Err(EvalError::WrongTypeArg)
     }
 }
 
-pub fn rcdr(cell: &Node) -> EResult<Node> {
+pub fn rcdr(cell: &Node) -> EvalResult {
     match cell {
         &Node::Cell(_, ref cdr) => Ok((**cdr).clone()),
-        _ => Err(RError::WrongTypeArg)
+        _ => Err(EvalError::WrongTypeArg)
     }
 }
 
@@ -86,7 +86,7 @@ pub fn prim(v: Prim) -> Node {
 
 impl PartialEq for Prim {
     fn eq(&self, other: &Self) -> bool {
-        false                   // TODO: fix
+        self == other
     }
 }
 
