@@ -16,4 +16,9 @@ fn test_run() {
     assert_eq!(run("(let ((c 10)) (let ((f (lambda (x) (+ x c)))) (let ((a (lambda (y) (f y)))) (a 20))))"), Ok(rint(30)));
     assert_eq!(run("((lambda (f1 f2) (f2 (f1 10) (f1 20))) (lambda (x) x) (lambda (x y) (+ x y)))"), Ok(rint(30)));
     assert_eq!(run("((if #t + -) 1 2)"), Ok(rint(3)));
+    assert_eq!(run("
+(let ((a 10)
+      (b 20)
+      (fn (lambda (x y) (* x y))))
+ (fn a b))"), Ok(rint(200)));
 }
