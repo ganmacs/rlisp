@@ -16,7 +16,7 @@ pub enum Node {
 
 #[derive(Clone)]
 pub enum Prim {
-    Proc(Rc<Fn(&mut Env<Node>, &Node) -> EvalResult>),
+    Proc(Rc<Fn(&mut Env<Node>, &Node) -> EvalResult<Node>>),
     Lambda (Env<Node>, Rc<Node>, Rc<Node>)
 }
 
@@ -26,15 +26,15 @@ pub enum Bool {
     False
 }
 
-pub fn rcdar(cell: &Node) -> EvalResult {
+pub fn rcdar(cell: &Node) -> EvalResult<Node> {
     rcdr(cell).and_then( |ref v| rcar(v) )
 }
 
-pub fn rcddar(cell: &Node) -> EvalResult {
+pub fn rcddar(cell: &Node) -> EvalResult<Node> {
     rcdr(cell).and_then( |ref v| rcdr(v) ).and_then( |ref v| rcar(v) )
 }
 
-pub fn rcar(cell: &Node) -> EvalResult {
+pub fn rcar(cell: &Node) -> EvalResult<Node> {
     if let Node::Cell(ref car, _) = *cell {
         Ok((**car).clone())
     } else {
@@ -42,7 +42,7 @@ pub fn rcar(cell: &Node) -> EvalResult {
     }
 }
 
-pub fn rcdr(cell: &Node) -> EvalResult {
+pub fn rcdr(cell: &Node) -> EvalResult<Node> {
     if let Node::Cell(_, ref cdr) = *cell {
         Ok((**cdr).clone())
     } else {
@@ -58,6 +58,13 @@ pub fn rnil() -> Node {
     Node::Nil
 }
 
+pub fn rbool(v: bool) -> Node {
+    if v {
+        rtrue()
+    } else {
+        rfalse()
+    }
+}
 pub fn rtrue() -> Node {
     Node::Bool(Bool::True)
 }

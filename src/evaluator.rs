@@ -2,14 +2,14 @@ use node::{Prim, Node, rcell, rnil, rcar, rcdr};
 use env::Env;
 use error::{RResult as Result, EvalError};
 
-pub type EvalResult = Result<Node, EvalError>;
+pub type EvalResult<T> = Result<T, EvalError>;
 
-fn apply_function(renv: &mut Env<Node>, args: (&Node, &Node), body: &Node) -> EvalResult {
+fn apply_function(renv: &mut Env<Node>, args: (&Node, &Node), body: &Node) -> EvalResult<Node> {
     try!(register_all(renv, args.0, args.1));
     eval(renv, body)
 }
 
-fn register_all(renv: &mut Env<Node>, keys: &Node, values: &Node) -> EvalResult {
+fn register_all(renv: &mut Env<Node>, keys: &Node, values: &Node) -> EvalResult<Node> {
     match (keys, values) {
         (&Node::Nil, &Node::Nil) => Ok(Node::Nil),
         (&Node::Nil, _) | (_, &Node::Nil)  => Err(EvalError::InvalidArgNumber),
@@ -25,7 +25,7 @@ fn register_all(renv: &mut Env<Node>, keys: &Node, values: &Node) -> EvalResult 
     }
 }
 
-fn apply(renv: &mut Env<Node>, fun: &Node, args: &Node) -> EvalResult {
+fn apply(renv: &mut Env<Node>, fun: &Node, args: &Node) -> EvalResult<Node> {
     match *fun {
         Node::Prim(ref prim) => match *prim {
             Prim::Proc(ref f) => f(renv, args),
@@ -41,7 +41,7 @@ fn apply(renv: &mut Env<Node>, fun: &Node, args: &Node) -> EvalResult {
     }
 }
 
-pub fn eval_list(renv: &mut Env<Node>, ast: &Node) -> EvalResult {
+pub fn eval_list(renv: &mut Env<Node>, ast: &Node) -> EvalResult<Node> {
     match *ast {
         Node::Cell(ref car, ref cdr) => Ok(rcell(try!(eval(renv, car)), try!(eval_list(renv, cdr)))),
         Node::Nil => Ok(rnil()),
@@ -49,7 +49,7 @@ pub fn eval_list(renv: &mut Env<Node>, ast: &Node) -> EvalResult {
     }
 }
 
-pub fn eval(renv: &mut Env<Node>, ast: &Node) -> EvalResult {
+pub fn eval(renv: &mut Env<Node>, ast: &Node) -> EvalResult<Node> {
     match *ast {
         Node::Int(_) | Node::Bool(_) | Node::Nil => Ok(ast.clone()),
         Node::Cell(ref car, ref cdr) => {

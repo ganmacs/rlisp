@@ -10,6 +10,7 @@ fn test_init(env: &mut Env<Node>) {
     env.register("+", Node::Prim(Prim::Proc(Rc::new(prim_add))));
     env.register("-", Node::Prim(Prim::Proc(Rc::new(prim_sub))));
     env.register("*", Node::Prim(Prim::Proc(Rc::new(prim_mul))));
+    env.register("=", Node::Prim(Prim::Proc(Rc::new(prim_eq))));
     env.register("if", Node::Prim(Prim::Proc(Rc::new(prim_if))));
     env.register("quote", Node::Prim(Prim::Proc(Rc::new(prim_quote))));
     env.register("lambda", Node::Prim(Prim::Proc(Rc::new(prim_lambda))));
@@ -80,6 +81,7 @@ fn test_eval_sub_prim() {
     assert_eq!(eval(env, &t2), Ok(rint(0)));
     assert_eq!(eval(env, &t3), Ok(rint(2)));
 }
+
 #[test]
 fn test_eval_mul_prim() {
     let env = &mut Env::new();
@@ -94,6 +96,19 @@ fn test_eval_mul_prim() {
     assert_eq!(eval(env, &t1), Ok(rint(2)));
     assert_eq!(eval(env, &t2), Ok(rint(6)));
     assert_eq!(eval(env, &t3), Ok(rint(6)));
+}
+
+#[test]
+fn test_eval_cmp_prims() {
+    let env = &mut Env::new();
+    test_init(env);
+    // (= 1 1)
+    let t1 = rcell(rsym("="), rlist(rint(1), rint(1)));
+    // (= 1 1 2)
+    let t2 = rcell(rsym("="), rcell(rint(1), rlist(rint(1), rint(2))));
+
+    assert_eq!(eval(env, &t1), Ok(rtrue()));
+    assert_eq!(eval(env, &t2), Ok(rfalse()));
 }
 
 #[test]

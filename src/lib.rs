@@ -15,6 +15,7 @@ fn register_symbols(env: &mut Env<Node>) {
     env.register("+", prim(Prim::Proc(Rc::new(primitives::prim_add))));
     env.register("-", prim(Prim::Proc(Rc::new(primitives::prim_sub))));
     env.register("*", prim(Prim::Proc(Rc::new(primitives::prim_mul))));
+    env.register("=", prim(Prim::Proc(Rc::new(primitives::prim_eq))));
     env.register("define", prim(Prim::Proc(Rc::new(primitives::prim_define))));
     env.register("progn", prim(Prim::Proc(Rc::new(primitives::prim_progn))));
     env.register("quote", prim(Prim::Proc(Rc::new(primitives::prim_quote))));
