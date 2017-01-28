@@ -51,6 +51,8 @@ fn test_read_expr() {
     assert_eq!(parse("(- (- 10 5) (- 10 5))"),
                Ok(rcell(rsym("-"), rlist(rcell(rsym("-"), rlist(rint(10), rint(5))),
                                          rcell(rsym("-"), rlist(rint(10), rint(5)))))));
+    // mul
+    assert_eq!(parse("(* 1 2)"), Ok(rcell(rsym("*"), rlist(rint(1), rint(2)))));
 }
 
 #[test]

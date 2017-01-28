@@ -71,6 +71,10 @@ pub fn prim_define(renv: &mut Env<Node>, args: &Node) -> EvalResult {
     Err(EvalError::E)
 }
 
+pub fn prim_mul(renv: &mut Env<Node>, args: &Node) -> EvalResult {
+    Ok(rint(do_mul(&try!(eval_list(renv, args)))))
+}
+
 pub fn prim_sub(renv: &mut Env<Node>, args: &Node) -> EvalResult {
     let lst = try!(eval_list(renv, args));
     match lst {
@@ -89,6 +93,14 @@ pub fn prim_add(renv: &mut Env<Node>, args: &Node) -> EvalResult {
     Ok(rint(do_add(&try!(eval_list(renv, args)))))
 }
 
+fn do_mul(lst: &Node) -> i32 {
+    match *lst {
+        Node::Cell(ref car, ref cdr) => do_mul(car) * do_mul(cdr),
+        Node::Int(k) => k,
+        _ => 1
+    }
+}
+
 fn do_sub(base: i32, lst: &Node) -> i32 {
     match *lst {
         Node::Cell(ref car, ref cdr) => {
@@ -104,13 +116,8 @@ fn do_sub(base: i32, lst: &Node) -> i32 {
 
 fn do_add(lst: &Node) -> i32 {
     match *lst {
-        Node::Cell(ref car, ref cdr) => {
-            if let Node::Int(k) = **car {
-                k + do_add(cdr)
-            } else {
-                0
-            }
-        },
+        Node::Cell(ref car, ref cdr) => do_add(car)+ do_add(cdr),
+        Node::Int(k) => k,
         _ => 0
     }
 }
