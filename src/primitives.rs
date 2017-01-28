@@ -75,7 +75,41 @@ pub fn prim_eq(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
     let ref eargs = try!(eval_list(renv, args));
     let ref car = try!(rcar(eargs));
     let ref cdr = try!(rcdr(eargs));
-    Ok(rbool(try!(do_eq(car, cdr))))
+    let ref fun = |x, y| x == y;
+    let ret = try!(do_cmp(fun, car, cdr));
+    Ok(rbool(ret))
+}
+
+pub fn prim_lt(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
+    let ref eargs = try!(eval_list(renv, args));
+    let ref car = try!(rcar(eargs));
+    let ref cdr = try!(rcdr(eargs));
+    let ret = try!(do_cmp(&|x, y| x < y, car, cdr));
+    Ok(rbool(ret))
+}
+
+pub fn prim_lte(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
+    let ref eargs = try!(eval_list(renv, args));
+    let ref car = try!(rcar(eargs));
+    let ref cdr = try!(rcdr(eargs));
+    let ret = try!(do_cmp(&|x, y| x <= y, car, cdr));
+    Ok(rbool(ret))
+}
+
+pub fn prim_gt(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
+    let ref eargs = try!(eval_list(renv, args));
+    let ref car = try!(rcar(eargs));
+    let ref cdr = try!(rcdr(eargs));
+    let ret = try!(do_cmp(&|x, y| x > y, car, cdr));
+    Ok(rbool(ret))
+}
+
+pub fn prim_gte(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
+    let ref eargs = try!(eval_list(renv, args));
+    let ref car = try!(rcar(eargs));
+    let ref cdr = try!(rcdr(eargs));
+    let ret = try!(do_cmp(&|x, y| x >= y, car, cdr));
+    Ok(rbool(ret))
 }
 
 pub fn prim_mul(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
@@ -95,12 +129,12 @@ pub fn prim_add(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
     Ok(rint(ret))
 }
 
-pub fn do_eq(l: &Node, r: &Node) -> EvalResult<bool> {
+pub fn do_cmp<F>(f: &F, l: &Node, r: &Node) -> EvalResult<bool> where F: Fn(i32, i32) -> bool {
     match (l, r) {
         (ref rv@&Node::Int(_), &Node::Cell(ref v1, ref v2)) => {
-            Ok(try!(do_eq(v1, v2)) && try!(do_eq(v1, rv)))
+            Ok(try!(do_cmp(f, rv, v1)) && try!(do_cmp(f, v1, v2)))
         },
-        (&Node::Int(v1), &Node::Int(v2)) => Ok(v1 == v2),
+        (&Node::Int(v1), &Node::Int(v2)) => Ok(f(v1, v2)),
         (_, &Node::Nil) => Ok(true),
         (_, _) => Err(EvalError::WrongTypeArg)
     }

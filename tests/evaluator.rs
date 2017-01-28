@@ -11,6 +11,10 @@ fn test_init(env: &mut Env<Node>) {
     env.register("-", Node::Prim(Prim::Proc(Rc::new(prim_sub))));
     env.register("*", Node::Prim(Prim::Proc(Rc::new(prim_mul))));
     env.register("=", Node::Prim(Prim::Proc(Rc::new(prim_eq))));
+    env.register("<", Node::Prim(Prim::Proc(Rc::new(prim_lt))));
+    env.register(">", Node::Prim(Prim::Proc(Rc::new(prim_gt))));
+    env.register("<=", Node::Prim(Prim::Proc(Rc::new(prim_lte))));
+    env.register(">=", Node::Prim(Prim::Proc(Rc::new(prim_gte))));
     env.register("if", Node::Prim(Prim::Proc(Rc::new(prim_if))));
     env.register("quote", Node::Prim(Prim::Proc(Rc::new(prim_quote))));
     env.register("lambda", Node::Prim(Prim::Proc(Rc::new(prim_lambda))));
@@ -106,9 +110,33 @@ fn test_eval_cmp_prims() {
     let t1 = rcell(rsym("="), rlist(rint(1), rint(1)));
     // (= 1 1 2)
     let t2 = rcell(rsym("="), rcell(rint(1), rlist(rint(1), rint(2))));
+    // (< 1 2)
+    let t3 = rcell(rsym("<"), rlist(rint(1), rint(2)));
+    // (< 1 2 1)
+    let t4 = rcell(rsym("<"), rcell(rint(1), rlist(rint(2), rint(1))));
+    // (> 2 1)
+    let t5 = rcell(rsym(">"), rlist(rint(2), rint(1)));
+    // (> 1 2 1)
+    let t6 = rcell(rsym(">"), rcell(rint(1), rlist(rint(2), rint(1))));
+    // (<= 1 1)
+    let t7 = rcell(rsym("<="), rlist(rint(1), rint(1)));
+    // (<= 2 1 1)
+    let t8 = rcell(rsym("<="), rcell(rint(2), rlist(rint(1), rint(1))));
+    // (>= 1 1)
+    let t9 = rcell(rsym(">="), rlist(rint(1), rint(1)));
+    // (>= 1 1 2)
+    let t10 = rcell(rsym(">="), rcell(rint(1), rlist(rint(1), rint(2))));
 
     assert_eq!(eval(env, &t1), Ok(rtrue()));
     assert_eq!(eval(env, &t2), Ok(rfalse()));
+    assert_eq!(eval(env, &t3), Ok(rtrue()));
+    assert_eq!(eval(env, &t4), Ok(rfalse()));
+    assert_eq!(eval(env, &t5), Ok(rtrue()));
+    assert_eq!(eval(env, &t6), Ok(rfalse()));
+    assert_eq!(eval(env, &t7), Ok(rtrue()));
+    assert_eq!(eval(env, &t8), Ok(rfalse()));
+    assert_eq!(eval(env, &t9), Ok(rtrue()));
+    assert_eq!(eval(env, &t10), Ok(rfalse()));
 }
 
 #[test]
