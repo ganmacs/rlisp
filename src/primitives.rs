@@ -79,25 +79,20 @@ pub fn prim_eq(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
 }
 
 pub fn prim_mul(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
-    Ok(rint(do_mul(&try!(eval_list(renv, args)))))
+    let ret = try!(eval_list(renv, args).and_then( |ref v| do_mul(v) ));
+    Ok(rint(ret))
 }
 
 pub fn prim_sub(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
-    let lst = try!(eval_list(renv, args));
-    match lst {
-        Node::Cell(ref car, ref cdr) => {
-            if let Node::Int(base) = **car {
-                return Ok(rint(do_sub(base, cdr)))
-            }
-        },
-        _ => ()
-    }
-
-    Err(EvalError::E)
+    let ref eargs = try!(eval_list(renv, args));
+    let ref car = try!(rcar(eargs));
+    let ref cdr = try!(rcdr(eargs));
+    Ok(rint(try!(do_sub(car, cdr))))
 }
 
 pub fn prim_add(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
-    Ok(rint(do_add(&try!(eval_list(renv, args)))))
+    let ret = try!(eval_list(renv, args).and_then( |ref v| do_add(v) ));
+    Ok(rint(ret))
 }
 
 pub fn do_eq(l: &Node, r: &Node) -> EvalResult<bool> {
@@ -111,31 +106,32 @@ pub fn do_eq(l: &Node, r: &Node) -> EvalResult<bool> {
     }
 }
 
-fn do_mul(lst: &Node) -> i32 {
+fn do_mul(lst: &Node) -> EvalResult<i32> {
     match *lst {
-        Node::Cell(ref car, ref cdr) => do_mul(car) * do_mul(cdr),
-        Node::Int(k) => k,
-        _ => 1
+        Node::Cell(ref car, ref cdr) => Ok(try!(do_mul(car)) * try!(do_mul(cdr))),
+        Node::Int(k) => Ok(k),
+        Node::Nil => Ok(1),
+        _ => Err(EvalError::WrongTypeArg)
     }
 }
 
-fn do_sub(base: i32, lst: &Node) -> i32 {
-    match *lst {
-        Node::Cell(ref car, ref cdr) => {
-            if let Node::Int(k) = **car {
-                do_sub(base - k, cdr)
-            } else {
-                base
-            }
-        },
-        _ => base
+fn do_sub(base: &Node, rest: &Node) -> EvalResult<i32> {
+    match (base, rest) {
+        (ref n@&Node::Int(_), &Node::Cell(ref v1, ref v2)) => {
+            let ref re = Node::Int(try!(do_sub(n, v1)));
+            do_sub(re, v2)
+        }
+        (&Node::Int(v1), &Node::Int(v2)) => Ok(v1 - v2),
+        (&Node::Int(v), &Node::Nil) => Ok(v),
+        (_, _) => Err(EvalError::WrongTypeArg)
     }
 }
 
-fn do_add(lst: &Node) -> i32 {
+fn do_add(lst: &Node) -> EvalResult<i32> {
     match *lst {
-        Node::Cell(ref car, ref cdr) => do_add(car) + do_add(cdr),
-        Node::Int(k) => k,
-        _ => 0
+        Node::Cell(ref car, ref cdr) => Ok(try!(do_add(car)) + try!(do_add(cdr))),
+        Node::Int(k) => Ok(k),
+        Node::Nil => Ok(0),
+        _ => Err(EvalError::WrongTypeArg)
     }
 }
