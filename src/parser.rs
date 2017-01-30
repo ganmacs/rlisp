@@ -57,12 +57,12 @@ fn read_list(lexer: &mut Lexer) -> ParseResult {
         Some(')') => {
             lexer.next();
             Ok(Node::Nil)
-        },
+        }
         _ => {
             let car = try!(read(lexer));
             let cdr = try!(read_list(lexer));
             Ok(Node::Cell(Rc::new(car), Rc::new(cdr)))
-        },
+        }
     }
 }
 
@@ -82,11 +82,11 @@ fn read_int(c: char, lexer: &mut Lexer) -> ParseResult {
     Ok(Node::Int(i32::from_str_radix(&v, radix).unwrap()))
 }
 
-fn read_number(lexer: &mut Lexer, c: char) ->  ParseResult {
+fn read_number(lexer: &mut Lexer, c: char) -> ParseResult {
     read_int(c, lexer)
 }
 
-fn read_symbol(lexer: &mut Lexer, c: char) ->  ParseResult {
+fn read_symbol(lexer: &mut Lexer, c: char) -> ParseResult {
     let v = &mut String::new();
     v.push(c);
 
@@ -103,9 +103,8 @@ fn read_symbol(lexer: &mut Lexer, c: char) ->  ParseResult {
 
 fn is_ident(c: char) -> bool {
     match c {
-        'a'...'z' | 'A'...'Z' | '0'...'9' | '=' | '<' | '>' |
-        '+' | '-' | '/' | '%' => true,
-        _ => false
+        'a'...'z' | 'A'...'Z' | '0'...'9' | '=' | '<' | '>' | '+' | '-' | '/' | '%' => true,
+        _ => false,
     }
 }
 
@@ -117,17 +116,19 @@ fn read_hash_symbol(lexer: &mut Lexer) -> ParseResult {
     }
 }
 
-fn read(lexer: &mut Lexer) ->  ParseResult {
+
+fn read(lexer: &mut Lexer) -> ParseResult {
     match lexer.next_no_whitespace() {
         None => Ok(Node::Nil),
-        Some(c) =>
+        Some(c) => {
             match c {
                 '(' => read_list(lexer),
                 '\'' => read_quote(lexer),
                 '#' => read_hash_symbol(lexer),
                 '0'...'9' => read_number(lexer, c),
-                _ => read_symbol(lexer, c)
+                _ => read_symbol(lexer, c),
             }
+        }
     }
 }
 

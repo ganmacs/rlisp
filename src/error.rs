@@ -4,9 +4,9 @@ use std::fmt;
 pub type RResult<T, E> where E: error::Error = Result<T, E>;
 
 #[derive(Debug, PartialEq)]
-    pub enum RLispError {
+pub enum RLispError {
     EvalError(EvalError),
-    ParseError(ParseError)
+    ParseError(ParseError),
 }
 
 impl fmt::Display for RLispError {
@@ -31,7 +31,7 @@ impl error::Error for RLispError {
 pub enum ParseError {
     InvalidSyntax(u32),
     UnmatchedParen(u32),
-    RequireString(u32)
+    RequireString(u32),
 }
 
 impl fmt::Display for ParseError {
@@ -52,10 +52,10 @@ impl error::Error for ParseError {
 
 #[derive(Debug, PartialEq)]
 pub enum EvalError {
-    E,                     // must be fix
+    E, // must be fix
     UnknowSymbol(String),
     InvalidArgNumber,
-    WrongTypeArg
+    WrongTypeArg,
 }
 
 impl fmt::Display for EvalError {

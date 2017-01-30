@@ -17,21 +17,21 @@ pub enum Node {
 #[derive(Clone)]
 pub enum Prim {
     Proc(Rc<Fn(&mut Env<Node>, &Node) -> EvalResult<Node>>),
-    Lambda (Env<Node>, Rc<Node>, Rc<Node>)
+    Lambda(Env<Node>, Rc<Node>, Rc<Node>),
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Bool {
     True,
-    False
+    False,
 }
 
 pub fn rcdar(cell: &Node) -> EvalResult<Node> {
-    rcdr(cell).and_then( |ref v| rcar(v) )
+    rcdr(cell).and_then(|ref v| rcar(v))
 }
 
 pub fn rcddar(cell: &Node) -> EvalResult<Node> {
-    rcdr(cell).and_then( |ref v| rcdr(v) ).and_then( |ref v| rcar(v) )
+    rcdr(cell).and_then(|ref v| rcdr(v)).and_then(|ref v| rcar(v))
 }
 
 pub fn rcar(cell: &Node) -> EvalResult<Node> {
@@ -59,11 +59,7 @@ pub fn rnil() -> Node {
 }
 
 pub fn rbool(v: bool) -> Node {
-    if v {
-        rtrue()
-    } else {
-        rfalse()
-    }
+    if v { rtrue() } else { rfalse() }
 }
 pub fn rtrue() -> Node {
     Node::Bool(Bool::True)
@@ -73,7 +69,7 @@ pub fn rfalse() -> Node {
     Node::Bool(Bool::False)
 }
 
-pub fn rcell(car: Node, cdr:  Node) -> Node {
+pub fn rcell(car: Node, cdr: Node) -> Node {
     Node::Cell(Rc::new(car), Rc::new(cdr))
 }
 

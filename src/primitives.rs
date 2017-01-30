@@ -20,7 +20,7 @@ fn transform(node: &Node) -> (Node, Node) {
             let (ar, vr) = transform(r);
             (rcell(nr, ar), rcell(nv, vr))
         }
-        _ => (Node::Nil, Node::Nil)
+        _ => (Node::Nil, Node::Nil),
     }
 }
 
@@ -32,13 +32,13 @@ pub fn prim_lambda(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
 }
 
 pub fn prim_if(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
-    let cond = try!(rcar(args).and_then( |ref v| eval(renv, v) ));
+    let cond = try!(rcar(args).and_then(|ref v| eval(renv, v)));
     let clause = if cond == Node::Bool(Bool::False) {
         rcddar(args)
     } else {
         rcdar(args)
     };
-    clause.and_then( |ref v| eval(renv, v))
+    clause.and_then(|ref v| eval(renv, v))
 }
 
 pub fn prim_progn(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
@@ -46,9 +46,9 @@ pub fn prim_progn(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
         Node::Cell(ref car, ref cdr) => {
             let ret = try!(eval(renv, car));
             let rest = try!(prim_progn(renv, cdr));
-            Ok(if rest == Node::Nil { ret } else  { rest })
+            Ok(if rest == Node::Nil { ret } else { rest })
         }
-        ref x => Ok(x.clone())
+        ref x => Ok(x.clone()),
     }
 }
 
@@ -65,8 +65,8 @@ pub fn prim_define(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
                 renv.register(s.to_string(), ret.clone());
                 return Ok(ret);
             }
-        },
-        _ => ()
+        }
+        _ => (),
     }
     Err(EvalError::E)
 }
@@ -113,7 +113,7 @@ pub fn prim_gte(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
 }
 
 pub fn prim_mul(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
-    let ret = try!(eval_list(renv, args).and_then( |ref v| do_mul(v) ));
+    let ret = try!(eval_list(renv, args).and_then(|ref v| do_mul(v)));
     Ok(rint(ret))
 }
 
@@ -125,18 +125,20 @@ pub fn prim_sub(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
 }
 
 pub fn prim_add(renv: &mut Env<Node>, args: &Node) -> EvalResult<Node> {
-    let ret = try!(eval_list(renv, args).and_then( |ref v| do_add(v) ));
+    let ret = try!(eval_list(renv, args).and_then(|ref v| do_add(v)));
     Ok(rint(ret))
 }
 
-pub fn do_cmp<F>(f: &F, l: &Node, r: &Node) -> EvalResult<bool> where F: Fn(i32, i32) -> bool {
+pub fn do_cmp<F>(f: &F, l: &Node, r: &Node) -> EvalResult<bool>
+    where F: Fn(i32, i32) -> bool
+{
     match (l, r) {
-        (ref rv@&Node::Int(_), &Node::Cell(ref v1, ref v2)) => {
+        (ref rv @ &Node::Int(_), &Node::Cell(ref v1, ref v2)) => {
             Ok(try!(do_cmp(f, rv, v1)) && try!(do_cmp(f, v1, v2)))
-        },
+        }
         (&Node::Int(v1), &Node::Int(v2)) => Ok(f(v1, v2)),
         (_, &Node::Nil) => Ok(true),
-        (_, _) => Err(EvalError::WrongTypeArg)
+        (_, _) => Err(EvalError::WrongTypeArg),
     }
 }
 
@@ -145,19 +147,19 @@ fn do_mul(lst: &Node) -> EvalResult<i32> {
         Node::Cell(ref car, ref cdr) => Ok(try!(do_mul(car)) * try!(do_mul(cdr))),
         Node::Int(k) => Ok(k),
         Node::Nil => Ok(1),
-        _ => Err(EvalError::WrongTypeArg)
+        _ => Err(EvalError::WrongTypeArg),
     }
 }
 
 fn do_sub(base: &Node, rest: &Node) -> EvalResult<i32> {
     match (base, rest) {
-        (ref n@&Node::Int(_), &Node::Cell(ref v1, ref v2)) => {
+        (ref n @ &Node::Int(_), &Node::Cell(ref v1, ref v2)) => {
             let ref re = Node::Int(try!(do_sub(n, v1)));
             do_sub(re, v2)
         }
         (&Node::Int(v1), &Node::Int(v2)) => Ok(v1 - v2),
         (&Node::Int(v), &Node::Nil) => Ok(v),
-        (_, _) => Err(EvalError::WrongTypeArg)
+        (_, _) => Err(EvalError::WrongTypeArg),
     }
 }
 
@@ -166,6 +168,6 @@ fn do_add(lst: &Node) -> EvalResult<i32> {
         Node::Cell(ref car, ref cdr) => Ok(try!(do_add(car)) + try!(do_add(cdr))),
         Node::Int(k) => Ok(k),
         Node::Nil => Ok(0),
-        _ => Err(EvalError::WrongTypeArg)
+        _ => Err(EvalError::WrongTypeArg),
     }
 }

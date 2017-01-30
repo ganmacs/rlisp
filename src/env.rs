@@ -3,14 +3,14 @@ use std::collections::{HashMap, LinkedList};
 #[derive(Debug, PartialEq, Clone)]
 pub struct Env<T> {
     global: HashMap<String, T>,
-    local: LinkedList<HashMap<String, T>>
+    local: LinkedList<HashMap<String, T>>,
 }
 
 impl<T> Env<T> {
     pub fn new() -> Env<T> {
         Env {
             global: HashMap::new(),
-            local: LinkedList::new()
+            local: LinkedList::new(),
         }
     }
 
@@ -32,7 +32,7 @@ impl<T> Env<T> {
 
     pub fn find(&self, key: &str) -> Option<&T> {
         for lhash in self.local.iter() {
-            if let v@Some(_) = lhash.get(key) {
+            if let v @ Some(_) = lhash.get(key) {
                 return v;
             }
         }

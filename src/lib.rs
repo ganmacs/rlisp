@@ -32,6 +32,6 @@ pub fn run<T: Into<String>>(input: T) -> RResult<Node, RLispError> {
     let renv = &mut env::Env::new();
     init(renv);
 
-    let ast = try!(parser::parse(input).map_err( |v| RLispError::ParseError(v)));
-    evaluator::eval(renv, &ast).map_err( |v| RLispError::EvalError(v) )
+    let ast = try!(parser::parse(input).map_err(|v| RLispError::ParseError(v)));
+    evaluator::eval(renv, &ast).map_err(|v| RLispError::EvalError(v))
 }
