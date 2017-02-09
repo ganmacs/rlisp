@@ -5,6 +5,7 @@ pub mod node;
 pub mod env;
 pub mod primitives;
 pub mod error;
+pub mod codegen;
 
 use std::rc::Rc;
 use node::{Node, Prim, prim};
@@ -33,5 +34,8 @@ pub fn run<T: Into<String>>(input: T) -> RResult<Node, RLispError> {
     init(renv);
 
     let ast = try!(parser::parse(input).map_err(|v| RLispError::ParseError(v)));
+
+    codegen::VM::new().run(&ast);
+
     evaluator::eval(renv, &ast).map_err(|v| RLispError::EvalError(v))
 }
