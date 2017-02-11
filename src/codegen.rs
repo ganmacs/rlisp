@@ -1,8 +1,6 @@
 extern crate llvm_sys as llvm;
 use std::ffi::CString;
 use std::ptr;
-use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use self::llvm::prelude::*;
 
 use node::*;
@@ -13,7 +11,7 @@ pub struct VM {
     builder: LLVMBuilderRef,
     module: LLVMModuleRef,
     int_value_type: LLVMTypeRef,
-    env: Env<LLVMValueRef>,
+    prims: Env<String>,
 }
 
 macro_rules! cptr {
@@ -23,27 +21,29 @@ macro_rules! cptr {
 impl VM {
     pub fn new() -> VM {
         let context = VM::create_context();
+        let e = &mut Env::new();
+        e.register("+", "prim_plus".to_string());
         VM {
             context: context,
             builder: VM::create_builder_in_context(context),
             module: VM::create_module_with_name("rlisp"),
             int_value_type: VM::int_type(context),
-            env: Env::new(),
+            prims: e.clone(),
         }
     }
 
     pub fn run(&self, node: &Node) {
         self.init();
-        // generate code
-
+        let env = &mut Env::new();
+        self.llvm_ret(self.codegen(node, env));
         self.finalize();
     }
 
     fn init(&self) {
-        let func_type = self.get_function_type(self.int_value_type, &mut Vec::new());
-        let fun = self.add_function("main", func_type);
-        let bb = self.append_basic_block("entry", fun);
-        self.set_builder_position_at_end(bb);
+        self.add_fun();
+
+        // create main
+        self.create_fun_and_set_bb("main", self.int_value_type, &mut []);
     }
 
     fn finalize(&self) {
@@ -57,6 +57,118 @@ impl VM {
         }
     }
 
+    // int -> int -> int
+    fn add_fun(&self) -> LLVMValueRef {
+        let ty = self.int_value_type;
+        let arg_types = &mut [ty, ty];
+        let name = self.prims.find("+").unwrap();
+        let fun = self.create_fun_and_set_bb(name, ty, arg_types);
+        let lh = self.get_param_fun(&fun, 0);
+        let rh = self.get_param_fun(&fun, 1);
+        let v = self.llvm_add(lh, rh);
+        self.llvm_ret(v);
+        fun
+    }
+
+    fn llvm_ret(&self, ret: LLVMValueRef) -> LLVMValueRef {
+        unsafe { llvm::core::LLVMBuildRet(self.builder, ret) }
+    }
+
+    fn llvm_add(&self, lh: LLVMValueRef, rh: LLVMValueRef) -> LLVMValueRef {
+        unsafe { llvm::core::LLVMBuildAdd(self.builder, lh, rh, cptr!("v")) }
+    }
+
+    fn get_param_fun(&self, func: &LLVMValueRef, i: u32) -> LLVMValueRef {
+        unsafe { llvm::core::LLVMGetParam(*func, i) }
+    }
+
+    fn count_params_fun(&self, func: &LLVMValueRef) -> u32 {
+        unsafe { llvm::core::LLVMCountParams(*func) }
+    }
+
+    fn get_params_fun(&self, fun: &LLVMValueRef) -> Vec<LLVMValueRef> {
+        let count = self.count_params_fun(fun) as usize;
+        let buf = &mut Vec::with_capacity(count);
+        let p = buf.as_mut_ptr();
+        unsafe {
+            // std::mem::forget(buf);
+            llvm::core::LLVMGetParams(*fun, p);
+            Vec::from_raw_parts(p, count, count)
+        }
+    }
+
+    fn create_fun_and_set_bb(&self,
+                             name: &str,
+                             ret_ty: LLVMTypeRef,
+                             arg_types: &mut [LLVMTypeRef])
+                             -> LLVMValueRef {
+        let fun_type = self.get_function_type(ret_ty, arg_types);
+        let fun = self.add_function(name, fun_type);
+        let bb = self.append_basic_block("entry", fun);
+        self.set_builder_position_at_end(bb);
+        fun
+    }
+
+    fn codegen(&self, ast: &Node, env: &mut Env<LLVMValueRef>) -> LLVMValueRef {
+        match *ast {
+            Node::Int(val) => self.int_value(val as u64),
+            Node::Cell(ref car, ref cdr) => {
+                let f = match **car {
+                    Node::Sym(ref n) => {
+                        let fname = self.prims.find(n).unwrap();
+                        let v = self.find_function(fname).unwrap(); // TODO
+                        v
+                    }
+                    _ => panic!("not suport"),
+                };
+                self.apply_codegen(env, f, cdr)
+            }
+            Node::Sym(ref v) => *env.find(v).unwrap(),  // TODO fix
+            _ => panic!("not support"),
+        }
+    }
+
+    fn codegen_list(&self, env: &mut Env<LLVMValueRef>, n: &Node) -> Vec<LLVMValueRef> {
+        let args = &mut Vec::new();
+        let mut node = n;
+        while *node != rnil() {
+            match node {
+                &Node::Cell(ref car, ref cdr) => {
+                    args.push(self.codegen(car, env));
+                    node = cdr
+                }
+                _ => panic!("hgoe"),
+            }
+        }
+        args.clone()
+    }
+
+    fn apply_codegen(&self,
+                     env: &mut Env<LLVMValueRef>,
+                     fun: LLVMValueRef,
+                     rest: &Node)
+                     -> LLVMValueRef {
+        let args = self.codegen_list(env, rest);
+        let mut_args = args.clone().as_mut_ptr();
+        unsafe {
+            llvm::core::LLVMBuildCall(self.builder, fun, mut_args, args.len() as u32, cptr!("v"))
+        }
+    }
+
+    fn find_function(&self, name: &str) -> Option<LLVMValueRef> {
+        let v = unsafe { llvm::core::LLVMGetNamedFunction(self.module, cptr!(name)) };
+        let is_null = unsafe { llvm::core::LLVMIsNull(v) > 0 };
+        if is_null { None } else { Some(v) }
+    }
+
+
+    fn int_value(&self, val: u64) -> LLVMValueRef {
+        unsafe { llvm::core::LLVMConstInt(self.int_value_type, val, 0) }
+    }
+
+    fn allocate_mem(&self, name: &str, typ: LLVMTypeRef) -> LLVMValueRef {
+        unsafe { llvm::core::LLVMBuildAlloca(self.builder, typ, cptr!(name)) }
+    }
 
     fn set_builder_position_at_end(&self, bb: LLVMBasicBlockRef) {
         unsafe {
@@ -70,13 +182,13 @@ impl VM {
 
     fn get_function_type(&self,
                          ret_type: LLVMTypeRef,
-                         args_type: &mut Vec<LLVMTypeRef>)
+                         args_type: &mut [LLVMTypeRef])
                          -> LLVMTypeRef {
-        let l = args_type.len();
+        let l = args_type.len() as u32;
         if l == 0 {
             unsafe { llvm::core::LLVMFunctionType(ret_type, ptr::null_mut(), 0, 0) }
         } else {
-            unsafe { llvm::core::LLVMFunctionType(ret_type, args_type.as_mut_ptr(), 0, 0) }
+            unsafe { llvm::core::LLVMFunctionType(ret_type, args_type.as_mut_ptr(), l, 0) }
         }
     }
 
@@ -97,6 +209,6 @@ impl VM {
     }
 
     fn int_type(context: LLVMContextRef) -> LLVMTypeRef {
-        unsafe { llvm::core::LLVMInt64TypeInContext(context) }
+        unsafe { llvm::core::LLVMInt32TypeInContext(context) }
     }
 }
