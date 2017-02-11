@@ -88,8 +88,10 @@ impl VM {
 
     fn get_params_fun(&self, fun: &LLVMValueRef) -> Vec<LLVMValueRef> {
         let count = self.count_params_fun(fun) as usize;
-        let buf = &mut Vec::with_capacity(count);
-        let p = buf.as_mut_ptr();
+        let p = {
+            let buf = &mut Vec::with_capacity(count);
+            buf.as_mut_ptr()
+        };
         unsafe {
             // std::mem::forget(buf);
             llvm::core::LLVMGetParams(*fun, p);
@@ -110,21 +112,55 @@ impl VM {
     }
 
     fn codegen(&self, ast: &Node, env: &mut Env<LLVMValueRef>) -> LLVMValueRef {
+        println!("{:?}", ast);
         match *ast {
-            Node::Int(val) => self.int_value(val as u64),
+            Node::Int(val) => {
+                println!("{:?}", val);
+                self.int_value(val as u64)
+            }
             Node::Cell(ref car, ref cdr) => {
-                let f = match **car {
-                    Node::Sym(ref n) => {
-                        let fname = self.prims.find(n).unwrap();
-                        let v = self.find_function(fname).unwrap(); // TODO
-                        v
-                    }
+                match **car {
+                    Node::Sym(ref n) => self.apply_fun(env, n, cdr),
                     _ => panic!("not suport"),
-                };
-                self.apply_codegen(env, f, cdr)
+                }
             }
             Node::Sym(ref v) => *env.find(v).unwrap(),  // TODO fix
-            _ => panic!("not support"),
+            ref a => {
+                println!("{:?}", a);
+                panic!("not support in codegen")
+            }
+        }
+    }
+
+    fn apply_fun(&self, env: &mut Env<LLVMValueRef>, name: &str, rest: &Node) -> LLVMValueRef {
+        match name {
+            "+" => self.call_add_fun(env, rest),
+            _ => panic!("unknow"),
+        }
+    }
+
+    fn call_add_fun(&self, env: &mut Env<LLVMValueRef>, rest: &Node) -> LLVMValueRef {
+        match rest {
+            &Node::Cell(ref car, ref cdr) => {
+                let lh = self.codegen(car, env);
+                if **cdr == rnil() {
+                    return lh;
+                }
+                let rh = self.apply_fun(env, "+", cdr);
+                let name = self.prims.find("+").unwrap(); // alias
+                let fun = self.find_function(name).unwrap();
+                let v = &mut Vec::new();
+                let args = &mut {
+                    v.push(lh);
+                    v.push(rh);
+                    v
+                };
+                unsafe {
+                    llvm::core::LLVMBuildCall(self.builder, fun, args.as_mut_ptr(), 2, cptr!("v"))
+                }
+
+            }
+            _ => panic!("siran"),
         }
     }
 
