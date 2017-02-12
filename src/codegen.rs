@@ -25,6 +25,8 @@ impl VM {
         // alias
         e.register("+", "prim_add".to_string());
         e.register("-", "prim_sub".to_string());
+        e.register("*", "prim_mul".to_string());
+        e.register("/", "prim_div".to_string());
 
         VM {
             context: context,
@@ -52,6 +54,8 @@ impl VM {
     fn register_symbols(&self, env: &mut Env<LLVMValueRef>) {
         env.register("+", self.codegen_prim_arith("prim_add"));
         env.register("-", self.codegen_prim_arith("prim_sub"));
+        env.register("*", self.codegen_prim_arith("prim_mul"));
+        env.register("/", self.codegen_prim_arith("prim_div"));
     }
 
     fn finalize(&self) {
@@ -74,8 +78,8 @@ impl VM {
         let v = match name {
             "prim_add" => self.llvm_add(lh, rh),
             "prim_sub" => self.llvm_sub(lh, rh),
-            // "prim_mul" => self.llvm_mul(lh, rh),
-            // "prim_div" => self.llvm_div(lh, rh),
+            "prim_mul" => self.llvm_mul(lh, rh),
+            "prim_div" => self.llvm_div(lh, rh),
             _ => {
                 println!("{:?}", name);
                 panic!("not support arith")
@@ -95,6 +99,14 @@ impl VM {
 
     fn llvm_sub(&self, lh: LLVMValueRef, rh: LLVMValueRef) -> LLVMValueRef {
         unsafe { llvm::core::LLVMBuildSub(self.builder, lh, rh, cptr!("v")) }
+    }
+
+    fn llvm_mul(&self, lh: LLVMValueRef, rh: LLVMValueRef) -> LLVMValueRef {
+        unsafe { llvm::core::LLVMBuildMul(self.builder, lh, rh, cptr!("v")) }
+    }
+
+    fn llvm_div(&self, lh: LLVMValueRef, rh: LLVMValueRef) -> LLVMValueRef {
+        unsafe { llvm::core::LLVMBuildUDiv(self.builder, lh, rh, cptr!("v")) }
     }
 
     fn get_param_fun(&self, func: &LLVMValueRef, i: u32) -> LLVMValueRef {
@@ -149,7 +161,7 @@ impl VM {
 
     fn apply_fun(&self, env: &mut Env<LLVMValueRef>, name: &str, rest: &Node) -> LLVMValueRef {
         match name {
-            "+" | "-" => self.codegen_arith(name, rest, env),
+            "+" | "-" | "*" | "/" => self.codegen_arith(name, rest, env),
             _ => panic!("unknow"),
         }
     }
