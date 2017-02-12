@@ -112,12 +112,8 @@ impl VM {
     }
 
     fn codegen(&self, ast: &Node, env: &mut Env<LLVMValueRef>) -> LLVMValueRef {
-        println!("{:?}", ast);
         match *ast {
-            Node::Int(val) => {
-                println!("{:?}", val);
-                self.int_value(val as u64)
-            }
+            Node::Int(val) => self.int_value(val as u64),
             Node::Cell(ref car, ref cdr) => {
                 match **car {
                     Node::Sym(ref n) => self.apply_fun(env, n, cdr),
