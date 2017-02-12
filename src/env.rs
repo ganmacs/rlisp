@@ -1,4 +1,5 @@
 use std::collections::{HashMap, LinkedList};
+use std::collections::hash_map::Entry;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Env<T> {
@@ -30,6 +31,20 @@ impl<T> Env<T> {
         };
     }
 
+    pub fn entry<S: Into<String>>(&mut self, key: S) -> Entry<String, T> {
+        let key = key.into();
+        let mut ret = self.global.entry(key.clone());
+
+        for lhash in self.local.iter_mut() {
+            match lhash.entry(key.clone()) {
+                o @ Entry::Occupied(_) => return o,
+                v @ Entry::Vacant(_) => ret = v,
+            }
+        }
+
+        ret
+    }
+
     pub fn find(&self, key: &str) -> Option<&T> {
         for lhash in self.local.iter() {
             if let v @ Some(_) = lhash.get(key) {
@@ -37,5 +52,16 @@ impl<T> Env<T> {
             }
         }
         self.global.get(key)
+    }
+
+    pub fn debug_list_all_variable(&self) {
+        for lhash in self.local.iter() {
+            for (key, value) in lhash {
+                println!("{:?} => llvmvalu hp", key);
+            }
+        }
+        for (key, value) in &self.global {
+            println!("{:?} => llvmvalu hp", key);
+        }
     }
 }

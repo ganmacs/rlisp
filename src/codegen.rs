@@ -1,4 +1,5 @@
 extern crate llvm_sys as llvm;
+use std::collections::hash_map::Entry;
 use std::ffi::CString;
 use std::ptr;
 use self::llvm::prelude::*;
@@ -40,6 +41,7 @@ impl VM {
     pub fn run(&self, node: &Node) {
         let env = &mut Env::new();
         self.init(env);
+        self.pre_gen(node, env);
         self.llvm_ret(self.codegen(node, env));
         self.finalize();
     }
@@ -49,6 +51,33 @@ impl VM {
 
         // create main
         self.create_fun_and_set_bb("main", self.int_value_type, &mut []);
+    }
+
+    fn pre_gen(&self, ast: &Node, env: &mut Env<LLVMValueRef>) {
+        if let &Node::Cell(ref car, ref cdr) = ast {
+            match sym_to_str(car).unwrap().as_ref() {
+                "define" => {
+                    if let Node::Cell(ref ncar, ref ncdr) = **cdr {
+                        // vm should know a type of the return value
+                        // TODO: create LLVMValueRef wrapper struct
+                        let sym_name = sym_to_str(ncar).unwrap();
+                        let val = self.codegen(&rcar(ncdr).unwrap().clone(), env);
+                        let ptr = match env.entry(sym_name.as_ref()) {
+                            Entry::Occupied(o) => *o.get(),
+                            Entry::Vacant(v) => {
+                                let p = self.allocate_mem(sym_name.as_ref(), self.int_value_type);
+                                v.insert(p);
+                                p
+                            }
+                        };
+                        self.llmv_store(val, ptr);
+                    }
+                }
+                _ => panic!("not suport in pre gen"),
+            }
+        } else {
+            panic!("not suport in pre gen");
+        }
     }
 
     fn register_symbols(&self, env: &mut Env<LLVMValueRef>) {
@@ -162,14 +191,21 @@ impl VM {
     fn apply_fun(&self, env: &mut Env<LLVMValueRef>, name: &str, rest: &Node) -> LLVMValueRef {
         match name {
             "+" | "-" | "*" | "/" => self.codegen_arith(name, rest, env),
-            _ => panic!("unknow"),
+            "define" => {
+                let c = rcar(rest).and_then(|v| sym_to_str(&v.clone())).unwrap();
+                *env.find(c.as_ref()).unwrap()
+            }
+            _ => {
+                println!("at apply fun {:?}", name);
+                panic!("unknow");
+            }
         }
     }
 
     fn codegen_arith(&self, fname: &str, rest: &Node, env: &mut Env<LLVMValueRef>) -> LLVMValueRef {
         match rest {
             &Node::Cell(ref car, ref cdr) => {
-                let lh = self.codegen(car, env);
+                let lh = self.codegen(car, env); // to fix
                 if **cdr == rnil() {
                     return lh;
                 }
@@ -229,6 +265,10 @@ impl VM {
 
     fn allocate_mem(&self, name: &str, typ: LLVMTypeRef) -> LLVMValueRef {
         unsafe { llvm::core::LLVMBuildAlloca(self.builder, typ, cptr!(name)) }
+    }
+
+    fn llmv_store(&self, val: LLVMValueRef, target: LLVMValueRef) -> LLVMValueRef {
+        unsafe { llvm::core::LLVMBuildStore(self.builder, val, target) }
     }
 
     fn set_builder_position_at_end(&self, bb: LLVMBasicBlockRef) {

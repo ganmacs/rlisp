@@ -50,6 +50,14 @@ pub fn rcdr(cell: &Node) -> EvalResult<Node> {
     }
 }
 
+pub fn sym_to_str(sym: &Node) -> EvalResult<String> {
+    if let &Node::Sym(ref name) = sym {
+        Ok(name.clone())
+    } else {
+        Err(EvalError::WrongTypeArg)
+    }
+}
+
 pub fn rint(n: i32) -> Node {
     Node::Int(n)
 }
