@@ -22,7 +22,10 @@ impl VM {
     pub fn new() -> VM {
         let context = VM::create_context();
         let e = &mut Env::new();
-        e.register("+", "prim_plus".to_string());
+        // alias
+        e.register("+", "prim_add".to_string());
+        e.register("-", "prim_sub".to_string());
+
         VM {
             context: context,
             builder: VM::create_builder_in_context(context),
@@ -33,17 +36,22 @@ impl VM {
     }
 
     pub fn run(&self, node: &Node) {
-        self.init();
         let env = &mut Env::new();
+        self.init(env);
         self.llvm_ret(self.codegen(node, env));
         self.finalize();
     }
 
-    fn init(&self) {
-        self.add_fun();
+    fn init(&self, env: &mut Env<LLVMValueRef>) {
+        self.register_symbols(env);
 
         // create main
         self.create_fun_and_set_bb("main", self.int_value_type, &mut []);
+    }
+
+    fn register_symbols(&self, env: &mut Env<LLVMValueRef>) {
+        env.register("+", self.codegen_prim_arith("prim_add"));
+        env.register("-", self.codegen_prim_arith("prim_sub"));
     }
 
     fn finalize(&self) {
@@ -57,15 +65,22 @@ impl VM {
         }
     }
 
-    // int -> int -> int
-    fn add_fun(&self) -> LLVMValueRef {
+    fn codegen_prim_arith(&self, name: &str) -> LLVMValueRef {
         let ty = self.int_value_type;
         let arg_types = &mut [ty, ty];
-        let name = self.prims.find("+").unwrap();
         let fun = self.create_fun_and_set_bb(name, ty, arg_types);
         let lh = self.get_param_fun(&fun, 0);
         let rh = self.get_param_fun(&fun, 1);
-        let v = self.llvm_add(lh, rh);
+        let v = match name {
+            "prim_add" => self.llvm_add(lh, rh),
+            "prim_sub" => self.llvm_sub(lh, rh),
+            // "prim_mul" => self.llvm_mul(lh, rh),
+            // "prim_div" => self.llvm_div(lh, rh),
+            _ => {
+                println!("{:?}", name);
+                panic!("not support arith")
+            }
+        };
         self.llvm_ret(v);
         fun
     }
@@ -76,6 +91,10 @@ impl VM {
 
     fn llvm_add(&self, lh: LLVMValueRef, rh: LLVMValueRef) -> LLVMValueRef {
         unsafe { llvm::core::LLVMBuildAdd(self.builder, lh, rh, cptr!("v")) }
+    }
+
+    fn llvm_sub(&self, lh: LLVMValueRef, rh: LLVMValueRef) -> LLVMValueRef {
+        unsafe { llvm::core::LLVMBuildSub(self.builder, lh, rh, cptr!("v")) }
     }
 
     fn get_param_fun(&self, func: &LLVMValueRef, i: u32) -> LLVMValueRef {
@@ -130,27 +149,25 @@ impl VM {
 
     fn apply_fun(&self, env: &mut Env<LLVMValueRef>, name: &str, rest: &Node) -> LLVMValueRef {
         match name {
-            "+" => self.call_add_fun(env, rest),
+            "+" | "-" => self.codegen_arith(name, rest, env),
             _ => panic!("unknow"),
         }
     }
 
-    fn call_add_fun(&self, env: &mut Env<LLVMValueRef>, rest: &Node) -> LLVMValueRef {
+    fn codegen_arith(&self, fname: &str, rest: &Node, env: &mut Env<LLVMValueRef>) -> LLVMValueRef {
         match rest {
             &Node::Cell(ref car, ref cdr) => {
                 let lh = self.codegen(car, env);
                 if **cdr == rnil() {
                     return lh;
                 }
-                let rh = self.apply_fun(env, "+", cdr);
-                let name = self.prims.find("+").unwrap(); // alias
+                let rh = self.codegen_arith(fname, cdr, env);
+                let v = &fname.into();
+                let name = self.prims.find(fname).unwrap_or(v);
                 let fun = self.find_function(name).unwrap();
-                let v = &mut Vec::new();
-                let args = &mut {
-                    v.push(lh);
-                    v.push(rh);
-                    v
-                };
+                let args = &mut Vec::new();
+                args.push(lh);
+                args.push(rh);
                 unsafe {
                     llvm::core::LLVMBuildCall(self.builder, fun, args.as_mut_ptr(), 2, cptr!("v"))
                 }
