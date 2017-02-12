@@ -81,10 +81,10 @@ impl VM {
     }
 
     fn register_symbols(&self, env: &mut Env<LLVMValueRef>) {
-        env.register("+", self.codegen_prim_arith("prim_add"));
-        env.register("-", self.codegen_prim_arith("prim_sub"));
-        env.register("*", self.codegen_prim_arith("prim_mul"));
-        env.register("/", self.codegen_prim_arith("prim_div"));
+        env.register("+", self.prim_arith("prim_add"));
+        env.register("-", self.prim_arith("prim_sub"));
+        env.register("*", self.prim_arith("prim_mul"));
+        env.register("/", self.prim_arith("prim_div"));
     }
 
     fn finalize(&self) {
@@ -98,7 +98,7 @@ impl VM {
         }
     }
 
-    fn codegen_prim_arith(&self, name: &str) -> LLVMValueRef {
+    fn prim_arith(&self, name: &str) -> LLVMValueRef {
         let ty = self.int_value_type;
         let arg_types = &mut [ty, ty];
         let fun = self.create_fun_and_set_bb(name, ty, arg_types);
@@ -196,6 +196,7 @@ impl VM {
                 *env.find(c.as_ref()).unwrap()
             }
             _ => {
+                // env.find(name)
                 println!("at apply fun {:?}", name);
                 panic!("unknow");
             }
