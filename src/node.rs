@@ -26,6 +26,20 @@ pub enum Bool {
     False,
 }
 
+pub fn node_to_list(node: &mut Node) -> Vec<Node> {
+    let args = &mut Vec::new();
+    let mut v = node.clone();
+
+    while v != rnil() {
+        let l = rcar(&v).unwrap();
+        let r = rcdr(&v).unwrap();
+        args.push(l);
+        v = r;
+    }
+
+    args.clone()
+}
+
 pub fn rcdar(cell: &Node) -> EvalResult<Node> {
     rcdr(cell).and_then(|ref v| rcar(v))
 }

@@ -55,28 +55,41 @@ impl VM {
 
     fn pre_gen(&self, ast: &Node, env: &mut Env<LLVMValueRef>) {
         if let &Node::Cell(ref car, ref cdr) = ast {
-            match sym_to_str(car).unwrap().as_ref() {
-                "define" => {
-                    if let Node::Cell(ref ncar, ref ncdr) = **cdr {
-                        // vm should know a type of the return value
-                        // TODO: create LLVMValueRef wrapper struct
-                        let sym_name = sym_to_str(ncar).unwrap();
-                        let val = self.codegen(&rcar(ncdr).unwrap().clone(), env);
-                        let ptr = match env.entry(sym_name.as_ref()) {
-                            Entry::Occupied(o) => *o.get(),
-                            Entry::Vacant(v) => {
-                                let p = self.allocate_mem(sym_name.as_ref(), self.int_value_type);
-                                v.insert(p);
-                                p
+            if rnil() == **cdr {
+                self.pre_gen(car, env);
+                return;
+            }
+
+            match sym_to_str(car) {
+                Ok(x) => {
+                    match x.as_ref() {
+                        "define" => {
+                            if let Node::Cell(ref ncar, ref ncdr) = **cdr {
+                                // vm should know a type of the return value
+                                // TODO: create LLVMValueRef wrapper struct
+                                let sym_name = sym_to_str(ncar).unwrap();
+                                let val = self.codegen(&rcar(ncdr).unwrap().clone(), env);
+                                let ptr = match env.entry(sym_name.as_ref()) {
+                                    Entry::Occupied(o) => *o.get(),
+                                    Entry::Vacant(v) => {
+                                        let p =
+                                            self.allocate_mem(sym_name.as_ref(),
+                                                              self.int_value_type);
+                                        v.insert(p);
+                                        p
+                                    }
+                                };
+                                self.llmv_store(val, ptr);
                             }
-                        };
-                        self.llmv_store(val, ptr);
+                        }
+                        _ => self.pre_gen(cdr, env),
                     }
                 }
-                _ => panic!("not suport in pre gen"),
+                Err(_) => {
+                    self.pre_gen(car, env);
+                    self.pre_gen(cdr, env);
+                }
             }
-        } else {
-            panic!("not suport in pre gen");
         }
     }
 
@@ -180,7 +193,10 @@ impl VM {
                     _ => panic!("not suport"),
                 }
             }
-            Node::Sym(ref v) => *env.find(v).unwrap(),  // TODO fix
+            Node::Sym(ref name) => {
+                let ptr = env.find(name).unwrap();
+                self.build_load(*ptr, name)
+            }
             ref a => {
                 println!("{:?}", a);
                 panic!("not support in codegen")
@@ -194,6 +210,18 @@ impl VM {
             "define" => {
                 let c = rcar(rest).and_then(|v| sym_to_str(&v.clone())).unwrap();
                 *env.find(c.as_ref()).unwrap()
+            }
+            "progn" => {
+                env.push_local_scope();
+
+                let mut vec = node_to_list(&mut rest.clone());
+                let vec2 = vec.split_off(1);
+                let mut ret = self.codegen(&vec[0], env);
+                for v in vec2 {
+                    ret = self.codegen(&v.clone(), env);
+                }
+                env.pop_local_scope();
+                ret
             }
             _ => {
                 // env.find(name)
@@ -266,6 +294,11 @@ impl VM {
 
     fn allocate_mem(&self, name: &str, typ: LLVMTypeRef) -> LLVMValueRef {
         unsafe { llvm::core::LLVMBuildAlloca(self.builder, typ, cptr!(name)) }
+    }
+
+
+    fn build_load(&self, ptr: LLVMValueRef, name: &str) -> LLVMValueRef {
+        unsafe { llvm::core::LLVMBuildLoad(self.builder, ptr, cptr!(name)) }
     }
 
     fn llmv_store(&self, val: LLVMValueRef, target: LLVMValueRef) -> LLVMValueRef {
