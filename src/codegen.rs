@@ -24,7 +24,6 @@ impl Value {
     }
 }
 
-
 pub struct VM {
     context: LLVMContextRef,
     builder: LLVMBuilderRef,
@@ -82,25 +81,7 @@ impl VM {
             match sym_to_str(car) {
                 Ok(x) => {
                     match x.as_ref() {
-                        "define" => {
-                            if let Node::Cell(ref ncar, ref ncdr) = **cdr {
-                                let sym_name = sym_to_str(ncar).unwrap();
-                                let val = self.codegen(&rcar(ncdr).unwrap().clone(), env);
-                                let ptr = match env.entry(sym_name.as_ref()) {
-                                    Entry::Occupied(o) => o.get().clone(),
-                                    Entry::Vacant(v) => {
-                                        let p =
-                                            self.allocate_mem(sym_name.as_ref(),
-                                                              self.int_value_type);
-                                        let p = Value::Int(p);
-                                        v.insert(p.clone());
-                                        p
-                                    }
-                                };
-                                self.llmv_store(val, ptr.to_ref());
-
-                            }
-                        }
+                        "define" => self.prim_define(&(**cdr), env),
                         _ => self.pre_gen(cdr, env),
                     }
                 }
@@ -109,6 +90,23 @@ impl VM {
                     self.pre_gen(cdr, env);
                 }
             }
+        }
+    }
+
+    fn prim_define(&self, body: &Node, env: &mut Env<Value>) {
+        if let Node::Cell(ref ncar, ref ncdr) = *body {
+            let sym_name = sym_to_str(ncar).unwrap();
+            let val = self.codegen(&rcar(ncdr).unwrap().clone(), env);
+            let ptr = match env.entry(sym_name.as_ref()) {
+                Entry::Occupied(o) => o.get().clone(),
+                Entry::Vacant(v) => {
+                    let p = self.allocate_mem(sym_name.as_ref(), self.int_value_type);
+                    let p = Value::Int(p);
+                    v.insert(p.clone());
+                    p
+                }
+            };
+            self.llmv_store(val, ptr.to_ref());
         }
     }
 
