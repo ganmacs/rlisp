@@ -22,6 +22,15 @@ impl Value {
             _ => panic!("TBC"),
         }
     }
+
+    pub fn create_from(&self, v: LLVMValueRef) -> Value {
+        match self {
+            &Value::Int(_) => Value::Int(v),
+            &Value::Function(_) => Value::Function(v),
+            _ => panic!("TBC"),
+        }
+
+    }
 }
 
 pub struct VM {
@@ -31,7 +40,6 @@ pub struct VM {
     int_value_type: LLVMTypeRef,
     prims: Env<String>,
 }
-
 
 macro_rules! cptr {
     ($x: expr) => (CString::new($x).unwrap().as_ptr())
@@ -60,7 +68,7 @@ impl VM {
         let env = &mut Env::new();
         self.init(env);
         self.pre_gen(node, env);
-        self.llvm_ret(self.codegen(node, env));
+        self.llvm_ret(self.codegen(node, env).to_ref());
         self.finalize();
     }
 
@@ -100,21 +108,27 @@ impl VM {
             let ptr = match env.entry(sym_name.as_ref()) {
                 Entry::Occupied(o) => o.get().clone(),
                 Entry::Vacant(v) => {
-                    let p = self.allocate_mem(sym_name.as_ref(), self.int_value_type);
-                    let p = Value::Int(p);
-                    v.insert(p.clone());
-                    p
+                    match val {
+                        Value::Lambda(_, _, _) => {
+                            v.insert(val);
+                            return; // do not store lambda
+                        }
+                        _ => {
+                            let p = self.allocate_mem(sym_name.as_ref(), self.int_value_type);
+                            v.insert(val.create_from(p)).clone()
+                        }
+                    }
                 }
             };
-            self.llmv_store(val, ptr.to_ref());
+            self.llmv_store(val.to_ref(), ptr.to_ref());
         }
     }
 
     fn register_symbols(&self, env: &mut Env<Value>) {
-        env.register("+", Value::Function(self.prim_arith("prim_add")));
-        env.register("-", Value::Function(self.prim_arith("prim_sub")));
-        env.register("*", Value::Function(self.prim_arith("prim_mul")));
-        env.register("/", Value::Function(self.prim_arith("prim_div")));
+        env.register("+", self.prim_arith("prim_add"));
+        env.register("-", self.prim_arith("prim_sub"));
+        env.register("*", self.prim_arith("prim_mul"));
+        env.register("/", self.prim_arith("prim_div"));
     }
 
     fn finalize(&self) {
@@ -128,7 +142,7 @@ impl VM {
         }
     }
 
-    fn prim_arith(&self, name: &str) -> LLVMValueRef {
+    fn prim_arith(&self, name: &str) -> Value {
         let ty = self.int_value_type;
         let arg_types = &mut [ty, ty];
         let fun = self.create_fun_and_set_bb(name, ty, arg_types);
@@ -145,7 +159,7 @@ impl VM {
             }
         };
         self.llvm_ret(v);
-        fun
+        Value::Function(fun)
     }
 
     fn llvm_ret(&self, ret: LLVMValueRef) -> LLVMValueRef {
@@ -201,9 +215,9 @@ impl VM {
         fun
     }
 
-    fn codegen(&self, ast: &Node, env: &mut Env<Value>) -> LLVMValueRef {
+    fn codegen(&self, ast: &Node, env: &mut Env<Value>) -> Value {
         match *ast {
-            Node::Int(val) => self.int_value(val as u64),
+            Node::Int(val) => Value::Int(self.int_value(val as u64)),
             Node::Cell(ref car, ref cdr) => {
                 match **car {
                     Node::Sym(ref n) => self.apply_fun(env, n, cdr),
@@ -211,8 +225,8 @@ impl VM {
                 }
             }
             Node::Sym(ref name) => {
-                let ptr = env.find(name).unwrap();
-                self.build_load(ptr.to_ref(), name)
+                let val = env.find(name).unwrap();
+                val.create_from(self.build_load(val.to_ref(), name))
             }
             ref a => {
                 println!("{:?}", a);
@@ -221,7 +235,7 @@ impl VM {
         }
     }
 
-    fn apply_fun(&self, env: &mut Env<Value>, name: &str, rest: &Node) -> LLVMValueRef {
+    fn apply_fun(&self, env: &mut Env<Value>, name: &str, rest: &Node) -> Value {
         match name {
             "+" | "-" | "*" | "/" => self.codegen_arith(name, rest, env),
             "define" => {
@@ -230,7 +244,6 @@ impl VM {
             }
             "progn" => {
                 env.push_local_scope();
-
                 let mut vec = node_to_list(&mut rest.clone());
                 let vec2 = vec.split_off(1);
                 let mut ret = self.codegen(&vec[0], env);
@@ -240,6 +253,12 @@ impl VM {
                 env.pop_local_scope();
                 ret
             }
+            // "lambda" => {
+            //     env.push_local_scope();
+            //     // let v = self.apply_fun(env, "progn", rest);
+            //     env.pop_local_scope();
+            //     v
+            // }
             _ => {
                 // env.find(name)
                 println!("at apply fun {:?}", name);
@@ -248,7 +267,7 @@ impl VM {
         }
     }
 
-    fn codegen_arith(&self, fname: &str, rest: &Node, env: &mut Env<Value>) -> LLVMValueRef {
+    fn codegen_arith(&self, fname: &str, rest: &Node, env: &mut Env<Value>) -> Value {
         match rest {
             &Node::Cell(ref car, ref cdr) => {
                 let lh = self.codegen(car, env); // to fix
@@ -260,37 +279,16 @@ impl VM {
                 let name = self.prims.find(fname).unwrap_or(v);
                 let fun = self.find_function(name).unwrap();
                 let args = &mut Vec::new();
-                args.push(lh);
-                args.push(rh);
-                unsafe {
-                    llvm::core::LLVMBuildCall(self.builder, fun, args.as_mut_ptr(), 2, cptr!("v"))
+                match (lh, rh) {
+                    (Value::Int(v), Value::Int(v2)) => {
+                        args.push(v);
+                        args.push(v2);
+                    }
+                    _ => panic!("Wrong type of argument"),
                 }
-
+                Value::Int(self.build_call(fun, args, 2, "v"))
             }
             _ => panic!("siran"),
-        }
-    }
-
-    fn codegen_list(&self, env: &mut Env<Value>, n: &Node) -> Vec<LLVMValueRef> {
-        let args = &mut Vec::new();
-        let mut node = n;
-        while *node != rnil() {
-            match node {
-                &Node::Cell(ref car, ref cdr) => {
-                    args.push(self.codegen(car, env));
-                    node = cdr
-                }
-                _ => panic!("hgoe"),
-            }
-        }
-        args.clone()
-    }
-
-    fn apply_codegen(&self, env: &mut Env<Value>, fun: LLVMValueRef, rest: &Node) -> LLVMValueRef {
-        let args = self.codegen_list(env, rest);
-        let mut_args = args.clone().as_mut_ptr();
-        unsafe {
-            llvm::core::LLVMBuildCall(self.builder, fun, mut_args, args.len() as u32, cptr!("v"))
         }
     }
 
@@ -300,6 +298,15 @@ impl VM {
         if is_null { None } else { Some(v) }
     }
 
+
+    fn build_call(&self,
+                  fun: LLVMValueRef,
+                  args: &mut [LLVMValueRef],
+                  args_count: i32,
+                  name: &str)
+                  -> LLVMValueRef {
+        unsafe { llvm::core::LLVMBuildCall(self.builder, fun, args.as_mut_ptr(), 2, cptr!("v")) }
+    }
 
     fn int_value(&self, val: u64) -> LLVMValueRef {
         unsafe { llvm::core::LLVMConstInt(self.int_value_type, val, 0) }
