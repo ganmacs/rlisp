@@ -298,14 +298,19 @@ impl VM {
         if is_null { None } else { Some(v) }
     }
 
-
     fn build_call(&self,
                   fun: LLVMValueRef,
                   args: &mut [LLVMValueRef],
-                  args_count: i32,
+                  args_count: u32,
                   name: &str)
                   -> LLVMValueRef {
-        unsafe { llvm::core::LLVMBuildCall(self.builder, fun, args.as_mut_ptr(), 2, cptr!("v")) }
+        unsafe {
+            llvm::core::LLVMBuildCall(self.builder,
+                                      fun,
+                                      args.as_mut_ptr(),
+                                      args_count,
+                                      cptr!(name))
+        }
     }
 
     fn int_value(&self, val: u64) -> LLVMValueRef {
