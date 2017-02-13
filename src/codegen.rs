@@ -209,7 +209,7 @@ impl VM {
             "+" | "-" | "*" | "/" => self.codegen_arith(name, rest, env),
             "define" => {
                 let c = rcar(rest).and_then(|v| sym_to_str(&v.clone())).unwrap();
-                *env.find(c.as_ref()).unwrap()
+                self.codegen(&Node::Sym(c), env)
             }
             "progn" => {
                 env.push_local_scope();
