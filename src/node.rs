@@ -26,15 +26,14 @@ pub enum Bool {
     False,
 }
 
-pub fn node_to_list(node: &mut Node) -> Vec<Node> {
+pub fn node_to_vec(mut node: Node) -> Vec<Node> {
     let args = &mut Vec::new();
-    let mut v = node.clone();
 
-    while v != rnil() {
-        let l = rcar(&v).unwrap();
-        let r = rcdr(&v).unwrap();
+    while node != rnil() {
+        let l = rcar(&node).unwrap();
+        let r = rcdr(&node).unwrap();
         args.push(l);
-        v = r;
+        node = r;
     }
 
     args.clone()

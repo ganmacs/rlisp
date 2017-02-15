@@ -29,7 +29,6 @@ impl Value {
             &Value::Function(_) => Value::Function(v),
             _ => panic!("TBC"),
         }
-
     }
 }
 
@@ -111,7 +110,7 @@ impl VM {
                     match val {
                         Value::Lambda(_, _, _) => {
                             v.insert(val);
-                            return; // do not store lambda
+                            return; // do not call store operator of llvm for lambda
                         }
                         _ => {
                             let p = self.allocate_mem(sym_name.as_ref(), self.int_value_type);
@@ -240,11 +239,19 @@ impl VM {
             "+" | "-" | "*" | "/" => self.codegen_arith(name, rest, env),
             "define" => {
                 let c = rcar(rest).and_then(|v| sym_to_str(&v.clone())).unwrap();
-                self.codegen(&Node::Sym(c), env)
+                match env.clone().entry(c.as_ref()) {
+                    Entry::Occupied(o) => {
+                        match o.get() {
+                            &Value::Lambda(_, _, _) => Value::Int(self.int_value(10)), // tmp
+                            _ => self.codegen(&Node::Sym(c), env),
+                        }
+                    }
+                    Entry::Vacant(v) => panic!("not supoprt"),
+                }
             }
             "progn" => {
                 env.push_local_scope();
-                let mut vec = node_to_list(&mut rest.clone());
+                let mut vec = node_to_vec(rest.clone());
                 let vec2 = vec.split_off(1);
                 let mut ret = self.codegen(&vec[0], env);
                 for v in vec2 {
@@ -253,18 +260,61 @@ impl VM {
                 env.pop_local_scope();
                 ret
             }
-            // "lambda" => {
-            //     env.push_local_scope();
-            //     // let v = self.apply_fun(env, "progn", rest);
-            //     env.pop_local_scope();
-            //     v
-            // }
+            "lambda" => {
+                env.push_local_scope();
+                let ca = rcar(rest).unwrap();
+                let cd = rcdr(rest).unwrap();
+                let lam = Value::Lambda(env.clone(), ca, cd);
+                env.push_local_scope();
+                lam
+            }
             _ => {
-                // env.find(name)
-                println!("at apply fun {:?}", name);
-                panic!("unknow");
+                match env.find(name) {
+                    Some(v) => {
+                        match *v {
+                            Value::Lambda(ref new_env, ref args, ref body) => {
+                                self.codegen_lambda(&mut new_env.clone(),
+                                                    &args,
+                                                    &body,
+                                                    rest,
+                                                    &mut env.clone())
+                            }
+                            _ => unreachable!(),
+                        }
+                    }
+                    None => {
+                        println!("at apply fun {:?}", name);
+                        panic!("unknow");
+                    }
+                }
             }
         }
+    }
+
+    fn codegen_lambda(&self,
+                      lambda_env: &mut Env<Value>,
+                      vargs: &Node,
+                      body: &Node,
+                      aargs: &Node,
+                      env: &mut Env<Value>)
+                      -> Value {
+        let arg_values = self.codegen_list(env, aargs);
+        let vargs = node_to_vec(vargs.clone());
+        println!("{:?}", vargs);
+
+        for (a, name) in arg_values.iter().zip(vargs.iter()) {
+            let n = sym_to_str(&name.clone()).unwrap();
+            let p = self.allocate_mem(n.as_ref(), self.int_value_type);
+            lambda_env.register(n, a.create_from(p));
+            self.llmv_store(a.to_ref(), p);
+        }
+
+        self.apply_fun(lambda_env, "progn", body)
+    }
+
+    fn codegen_list(&self, env: &mut Env<Value>, n: &Node) -> Vec<Value> {
+        let args = node_to_vec(n.clone());
+        args.iter().map(|a| self.codegen(a, env)).collect() // side effect...
     }
 
     fn codegen_arith(&self, fname: &str, rest: &Node, env: &mut Env<Value>) -> Value {

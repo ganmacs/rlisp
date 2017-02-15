@@ -33,16 +33,17 @@ impl<T> Env<T> {
 
     pub fn entry<S: Into<String>>(&mut self, key: S) -> Entry<String, T> {
         let key = key.into();
-        let mut ret = self.global.entry(key.clone());
+        let mut v = self.global.entry(key.to_string());
 
-        for lhash in self.local.iter_mut() {
-            match lhash.entry(key.clone()) {
-                o @ Entry::Occupied(_) => return o,
-                v @ Entry::Vacant(_) => ret = v,
+        // Get newer pushed env
+        for lhash in self.local.iter_mut().rev() {
+            match (&v, lhash.entry(key.to_string())) {
+                (&Entry::Vacant(_), nv) => v = nv,
+                (&Entry::Occupied(_), o @ Entry::Occupied(_)) => v = o,
+                (&Entry::Occupied(_), Entry::Vacant(_)) => {}
             }
         }
-
-        ret
+        v
     }
 
     pub fn find(&self, key: &str) -> Option<&T> {
@@ -57,11 +58,11 @@ impl<T> Env<T> {
     pub fn debug_list_all_variable(&self) {
         for lhash in self.local.iter() {
             for (key, value) in lhash {
-                println!("{:?} => llvmvalu hp", key);
+                println!("{:?} => llvm value in local", key);
             }
         }
         for (key, value) in &self.global {
-            println!("{:?} => llvmvalu hp", key);
+            println!("{:?} => llvm value in global", key);
         }
     }
 }
