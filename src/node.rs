@@ -55,6 +55,14 @@ pub fn rcar(cell: &Node) -> EvalResult<Node> {
     }
 }
 
+pub fn car_ref(cell: &Node) -> EvalResult<&Node> {
+    if let &Node::Cell(ref car, _) = cell {
+        Ok(car)
+    } else {
+        Err(EvalError::WrongTypeArg)
+    }
+}
+
 pub fn rcdr(cell: &Node) -> EvalResult<Node> {
     if let Node::Cell(_, ref cdr) = *cell {
         Ok((**cdr).clone())
@@ -63,9 +71,9 @@ pub fn rcdr(cell: &Node) -> EvalResult<Node> {
     }
 }
 
-pub fn sym_to_str(sym: &Node) -> EvalResult<String> {
+pub fn sym_to_str(sym: &Node) -> EvalResult<&str> {
     if let &Node::Sym(ref name) = sym {
-        Ok(name.clone())
+        Ok(name)
     } else {
         Err(EvalError::WrongTypeArg)
     }

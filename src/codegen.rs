@@ -238,12 +238,12 @@ impl VM {
         match name {
             "+" | "-" | "*" | "/" => self.codegen_arith(name, rest, env),
             "define" => {
-                let c = rcar(rest).and_then(|v| sym_to_str(&v.clone())).unwrap();
+                let c = car_ref(rest).and_then(|v| sym_to_str(v)).unwrap();
                 match env.clone().entry(c.as_ref()) {
                     Entry::Occupied(o) => {
                         match o.get() {
                             &Value::Lambda(_, _, _) => Value::Int(self.int_value(10)), // tmp
-                            _ => self.codegen(&Node::Sym(c), env),
+                            _ => self.codegen(&Node::Sym(c.into()), env),
                         }
                     }
                     Entry::Vacant(v) => panic!("not supoprt"),
@@ -303,7 +303,7 @@ impl VM {
         println!("{:?}", vargs);
 
         for (a, name) in arg_values.iter().zip(vargs.iter()) {
-            let n = sym_to_str(&name.clone()).unwrap();
+            let n = sym_to_str(name).unwrap();
             let p = self.allocate_mem(n.as_ref(), self.int_value_type);
             lambda_env.register(n, a.create_from(p));
             self.llmv_store(a.to_ref(), p);
