@@ -219,8 +219,27 @@ impl VM {
             Node::Int(val) => Value::Int(self.int_value(val as u64)),
             Node::Cell(ref car, ref cdr) => {
                 match **car {
-                    Node::Sym(ref n) => self.apply_fun(env, n, cdr),
-                    _ => panic!("not suport"),
+                    Node::Sym(ref n) => {
+                        //
+                        self.apply_fun(env, n, cdr)
+                    }
+                    Node::Cell(_, _) => {
+                        let lam = self.codegen(car, env);
+                        match lam {
+                            Value::Lambda(ref new_env, ref args, ref body) => {
+                                self.codegen_lambda(&mut new_env.clone(),
+                                                    &args,
+                                                    &body,
+                                                    cdr,
+                                                    &mut env.clone())
+                            }
+                            _ => unreachable!(),
+                        }
+                    }
+                    _ => {
+                        println!("{:?}", car);
+                        panic!("not suport")
+                    }
                 }
             }
             Node::Sym(ref name) => {
@@ -300,7 +319,6 @@ impl VM {
                       -> Value {
         let arg_values = self.codegen_list(env, aargs);
         let vargs = node_to_vec(vargs.clone());
-        println!("{:?}", vargs);
 
         for (a, name) in arg_values.iter().zip(vargs.iter()) {
             let n = sym_to_str(name).unwrap();
