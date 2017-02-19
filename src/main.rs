@@ -1,12 +1,12 @@
 extern crate rlisp;
 
 fn main() {
-    // match rlisp::run("(define x (+ 1 2))") {
-    // match rlisp::run("(let ((x 10)
-    //                         (f (lambda (x) (+ x 10))))
-    //                   (f x))") {
+    // let expr = "(progn (define x (+ 1 2)) (+ x 2))";
+    let expr = "(let ((x 10)
+                  (f (lambda (x) (+ x 10))))
+                (f x))";
 
-    match rlisp::run("((lambda (x) (+ x 1)) 1)") {
+    match rlisp::run(expr) {
         Ok(result) => rlisp::printer::lprint(result),
         Err(v) => println!("{:?}", v),
     }

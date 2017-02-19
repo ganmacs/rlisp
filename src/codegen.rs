@@ -287,6 +287,12 @@ impl VM {
                 env.push_local_scope();
                 lam
             }
+            "let" => {
+                env.push_local_scope();
+                let ret = self.codegen_let(env, rest);
+                env.push_local_scope();
+                ret
+            }
             _ => {
                 match env.find(name) {
                     Some(v) => {
@@ -308,6 +314,30 @@ impl VM {
                 }
             }
         }
+    }
+
+    fn codegen_let(&self, env: &mut Env<Value>, lst: &Node) -> Value {
+        let args = car_ref(lst).unwrap();
+        let body = cdr_ref(lst).and_then(|v| car_ref(v)).unwrap();
+        let args = node_to_vec(args.clone());
+
+        for n in args.iter() {
+            let key: &str = car_ref(n).and_then(|n| sym_to_str(n)).unwrap();
+            let val: &Node = cdr_ref(n).and_then(|v| car_ref(v)).unwrap();
+            let v = self.codegen(val, env);
+            match v {
+                Value::Lambda(_, _, _) => {
+                    env.register(key, v);
+                }
+                _ => {
+                    let p = self.allocate_mem(key.as_ref(), self.int_value_type);
+                    env.register(key, v.create_from(p));
+                    self.llmv_store(v.to_ref(), p);
+                }
+            }
+        }
+
+        self.apply_fun(env, "progn", &rcell(body.clone(), rnil()))
     }
 
     fn codegen_lambda(&self,
