@@ -352,9 +352,16 @@ impl VM {
 
         for (a, name) in arg_values.iter().zip(vargs.iter()) {
             let n = sym_to_str(name).unwrap();
-            let p = self.allocate_mem(n.as_ref(), self.int_value_type);
-            lambda_env.register(n, a.create_from(p));
-            self.llmv_store(a.to_ref(), p);
+            match a {
+                &Value::Lambda(_, _, _) => {
+                    lambda_env.register(n, a.clone());
+                }
+                _ => {
+                    let p = self.allocate_mem(n.as_ref(), self.int_value_type);
+                    lambda_env.register(n, a.create_from(p));
+                    self.llmv_store(a.to_ref(), p);
+                }
+            }
         }
 
         self.apply_fun(lambda_env, "progn", body)
